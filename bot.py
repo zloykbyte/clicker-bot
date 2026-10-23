@@ -10,10 +10,13 @@ from aiogram.enums import ParseMode
 from aiogram.exceptions import TelegramBadRequest, TelegramRetryAfter
 from aiogram.filters import Command, CommandStart
 from aiogram.types import (
+    BotCommand,
     CallbackQuery,
     InlineKeyboardButton,
     InlineKeyboardMarkup,
+    MenuButtonWebApp,
     Message,
+    WebAppInfo,
 )
 from dotenv import load_dotenv
 
@@ -21,6 +24,9 @@ load_dotenv()
 
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 DB_PATH = os.getenv("DB_PATH", "clicker.db")
+# Адрес Mini App (страница из папки docs, опубликованная через GitHub Pages).
+# Должен быть https. Можно переопределить в .env: WEBAPP_URL=...
+WEBAPP_URL = os.getenv("WEBAPP_URL", "https://zloykbyte.github.io/clicker-bot/")
 
 router = Router()
 
@@ -146,8 +152,32 @@ async def safe_edit(message: Message, text: str, kb: InlineKeyboardMarkup) -> No
 
 # ---------- Обработчики ----------
 
+def webapp_keyboard() -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        inline_keyboard=[
+            [InlineKeyboardButton(text="🐀 Играть", web_app=WebAppInfo(url=WEBAPP_URL))]
+        ]
+    )
+
+
 @router.message(CommandStart())
 async def cmd_start(message: Message) -> None:
+    name = html.escape(message.from_user.first_name or "друг")
+    text = (
+        f"🐀 <b>Привет, {name}!</b>\n\n"
+        "Добро пожаловать в <b>Rat Combat</b>!\n\n"
+        "👆 Тапай по крысе и зарабатывай <b>RatCoin</b>: каждый тап даёт +1\n"
+        "⚡ Энергия восстанавливается сама\n"
+        "🧀 Прокачивай норку и получай доход каждый час\n"
+        "🏆 Расти в лигах и зови друзей\n\n"
+        "Жми «Играть» 👇"
+    )
+    await message.answer(text, reply_markup=webapp_keyboard())
+
+
+@router.message(Command("classic"))
+async def cmd_classic(message: Message) -> None:
+    """Старый кликер прямо в чате."""
     u = await get_user(message.from_user.id, display_name(message.from_user))
     await message.answer(render_text(u), reply_markup=render_keyboard(u))
 
@@ -202,6 +232,22 @@ async def main() -> None:
     logging.basicConfig(level=logging.INFO)
     await init_db()
     bot = Bot(BOT_TOKEN, default=DefaultBotProperties(parse_mode=ParseMode.HTML))
+    try:
+        # Кнопка «Играть» рядом с полем ввода и список команд
+        await bot.set_chat_menu_button(
+            menu_button=MenuButtonWebApp(
+                text="🐀 Играть", web_app=WebAppInfo(url=WEBAPP_URL)
+            )
+        )
+        await bot.set_my_commands(
+            [
+                BotCommand(command="start", description="Открыть Rat Combat"),
+                BotCommand(command="classic", description="Классический кликер в чате"),
+                BotCommand(command="top", description="Топ классического кликера"),
+            ]
+        )
+    except Exception:
+        logging.exception("Не удалось настроить меню бота")
     dp = Dispatcher()
     dp.include_router(router)
     await bot.delete_webhook(drop_pending_updates=True)

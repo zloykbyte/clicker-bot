@@ -2,6 +2,12 @@
 
 Бот на Python + aiogram 3. Кнопка «Клик», улучшение силы клика за очки, топ игроков. Данные хранятся в SQLite.
 
+## Mini App
+
+Игра лежит в `docs/index.html` и публикуется через GitHub Pages (Settings → Pages → Deploy from a branch → `main` → `/docs`). Адрес по умолчанию: `https://zloykbyte.github.io/clicker-bot/`, его можно заменить переменной `WEBAPP_URL` в `.env`.
+
+Прогресс игрока хранится в облаке Telegram (CloudStorage) и в браузере. Серверной части пока нет: общего топа и бонусов за друзей ещё нет.
+
 ## Запуск на Windows в один клик
 
 1. Установите Python с [python.org](https://www.python.org/downloads/) (отметьте «Add Python to PATH»).

@@ -1,0 +1,415 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>Rat Combat</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<style>
+:root{
+  --bg:#0d0e1a; --card:#1c1f3d; --line:#2b2f5c; --text:#f1f2ff; --muted:#8f94c4;
+  --gold:#ffcf4a; --accent:#7c5cff; --green:#35d07f;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent;-webkit-user-select:none;user-select:none}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--text);
+  font-family:-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;overflow:hidden;overscroll-behavior:none}
+#app{display:flex;flex-direction:column;height:100%;max-width:520px;margin:0 auto;
+  padding-top:env(safe-area-inset-top)}
+.top{display:flex;align-items:center;justify-content:space-between;padding:12px 16px 4px;gap:10px}
+.who{font-weight:700;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pill{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:6px 10px;font-size:13px;
+  display:flex;align-items:center;gap:6px;white-space:nowrap}
+.pill b{color:var(--green)}
+.screens{flex:1;min-height:0;position:relative}
+.screen{position:absolute;inset:0;display:none;flex-direction:column;padding:0 16px}
+.screen.on{display:flex}
+
+/* PLAY */
+.league{margin:6px 0 0}
+.league .row{display:flex;justify-content:space-between;font-size:13px;color:var(--muted);margin-bottom:6px}
+.league .row b{color:var(--text)}
+.bar{height:8px;border-radius:8px;background:#242850;overflow:hidden}
+.bar i{display:block;height:100%;width:0;border-radius:8px;transition:width .3s}
+#lgFill{background:linear-gradient(90deg,#7c5cff,#c45cff)}
+#enFill{background:linear-gradient(90deg,#ffb12a,#ffe066)}
+.balance{display:flex;align-items:center;justify-content:center;gap:10px;margin:14px 0 2px;
+  font-size:44px;font-weight:800;letter-spacing:-.5px}
+.coin{width:1em;height:1em;flex:none}
+.coin.sm{width:16px;height:16px;vertical-align:-3px;margin-right:4px}
+.sub{text-align:center;color:var(--muted);font-size:13px}
+.tapwrap{flex:1;min-height:0;display:flex;align-items:center;justify-content:center}
+.tap{width:min(72vw,300px,42vh);aspect-ratio:1;border-radius:50%;display:flex;align-items:center;justify-content:center;
+  background:radial-gradient(circle at 35% 28%,#5a4cd0 0%,#2e2878 55%,#181642 100%);
+  box-shadow:0 0 0 7px #2f2b7c,0 0 0 13px #3d37a3,0 18px 55px rgba(124,92,255,.5),inset 0 -10px 30px rgba(0,0,0,.4);
+  touch-action:none;cursor:pointer;transition:transform .09s ease-out;will-change:transform}
+.tap svg{width:80%;height:80%;pointer-events:none;filter:drop-shadow(0 6px 10px rgba(0,0,0,.45))}
+.energy{padding:6px 0 14px}
+.energy .row{display:flex;justify-content:space-between;font-size:13px;margin-bottom:6px}
+.float{position:fixed;pointer-events:none;font-weight:800;font-size:30px;color:#fff;z-index:50;
+  text-shadow:0 2px 8px rgba(0,0,0,.7);animation:fly .9s ease-out forwards}
+@keyframes fly{from{opacity:1;transform:translate(-50%,-50%)}to{opacity:0;transform:translate(-50%,-200%)}}
+
+/* SHOP */
+.h1{font-size:20px;font-weight:800;margin:10px 0 4px}
+.hint{color:var(--muted);font-size:13px;margin:0 0 12px}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;overflow:auto;padding-bottom:12px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:12px;text-align:left;color:var(--text);
+  font:inherit;cursor:pointer;display:flex;flex-direction:column;gap:3px}
+.card .ic{font-size:30px}
+.card .nm{font-weight:700;font-size:14px}
+.card .pf{font-size:12px;color:var(--green)}
+.card .lv{font-size:12px;color:var(--muted)}
+.card .pr{margin-top:6px;font-weight:700;font-size:14px;color:var(--gold);display:flex;align-items:center}
+.card.off{opacity:.45}
+.card:active{transform:scale(.97)}
+
+/* friends / tasks */
+.center{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:10px;padding:0 10px}
+.big{font-size:64px}
+.btn{background:linear-gradient(90deg,#7c5cff,#a05cff);color:#fff;border:0;border-radius:14px;padding:14px 22px;
+  font:inherit;font-weight:700;font-size:16px;cursor:pointer}
+.btn:active{transform:scale(.97)}
+
+/* NAV */
+nav{display:flex;gap:6px;padding:8px 10px calc(8px + env(safe-area-inset-bottom));background:#111227;border-top:1px solid var(--line)}
+nav button{flex:1;background:none;border:0;color:var(--muted);font:inherit;font-size:12px;padding:6px 0;border-radius:12px;
+  display:flex;flex-direction:column;align-items:center;gap:2px;cursor:pointer}
+nav button span{font-size:22px}
+nav button.on{color:var(--text);background:var(--card)}
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="coin" viewBox="0 0 24 24">
+    <circle cx="12" cy="12" r="11" fill="#ffcf4a" stroke="#e08a00" stroke-width="1.5"/>
+    <circle cx="12" cy="12" r="8" fill="none" stroke="#e8a20c" stroke-width="1"/>
+    <text x="12" y="16.3" text-anchor="middle" font-size="11" font-weight="800" fill="#b86a00" font-family="Arial,sans-serif">R</text>
+  </symbol>
+</svg>
+
+<div id="app">
+  <div class="top">
+    <div class="who" id="who">🐀 Игрок</div>
+    <div class="pill">Доход в час <b id="pph">+0</b></div>
+  </div>
+
+  <div class="screens">
+    <!-- ИГРАТЬ -->
+    <section class="screen on" id="s-play">
+      <div class="league">
+        <div class="row"><span>Лига: <b id="lgName">Серая крыса</b></span><span id="lgNext"></span></div>
+        <div class="bar"><i id="lgFill"></i></div>
+      </div>
+      <div class="balance"><svg class="coin"><use href="#coin"/></svg><span id="bal">0</span></div>
+      <div class="sub">RatCoin</div>
+
+      <div class="tapwrap">
+        <div class="tap" id="tap" role="button" aria-label="Тап">
+          <svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="52" cy="58" r="33" fill="#9aa3b5"/><circle cx="52" cy="58" r="21" fill="#f4a6b8"/>
+            <circle cx="148" cy="58" r="33" fill="#9aa3b5"/><circle cx="148" cy="58" r="21" fill="#f4a6b8"/>
+            <ellipse cx="100" cy="112" rx="68" ry="62" fill="#b7bfcc"/>
+            <ellipse cx="100" cy="136" rx="38" ry="28" fill="#e4e8ef"/>
+            <circle cx="75" cy="100" r="8.5" fill="#1b1f2a"/><circle cx="125" cy="100" r="8.5" fill="#1b1f2a"/>
+            <circle cx="78" cy="97" r="2.8" fill="#fff"/><circle cx="128" cy="97" r="2.8" fill="#fff"/>
+            <ellipse cx="100" cy="122" rx="8" ry="6" fill="#ee819c"/>
+            <path d="M100 128v7M100 135q-10 8-20 2M100 135q10 8 20 2" fill="none" stroke="#1b1f2a" stroke-width="2.5" stroke-linecap="round"/>
+            <rect x="92.5" y="138" width="7" height="11" rx="2" fill="#fff" stroke="#c9ced8" stroke-width="1"/>
+            <rect x="100.5" y="138" width="7" height="11" rx="2" fill="#fff" stroke="#c9ced8" stroke-width="1"/>
+            <path d="M62 126L20 116M62 133L18 135M138 126L180 116M138 133L182 135" stroke="#6c7587" stroke-width="2.5" stroke-linecap="round"/>
+          </svg>
+        </div>
+      </div>
+
+      <div class="energy">
+        <div class="row"><span>⚡ Энергия</span><span id="enTxt">1000 / 1000</span></div>
+        <div class="bar"><i id="enFill" style="width:100%"></i></div>
+      </div>
+    </section>
+
+    <!-- УЛУЧШЕНИЯ -->
+    <section class="screen" id="s-shop">
+      <div class="h1">Норка</div>
+      <p class="hint">Покупай улучшения: они приносят RatCoin каждый час, даже когда ты не в игре (до 3 часов).</p>
+      <div class="grid" id="shop"></div>
+    </section>
+
+    <!-- ДРУЗЬЯ -->
+    <section class="screen" id="s-friends">
+      <div class="center">
+        <div class="big">🐀🐀</div>
+        <div class="h1">Зови друзей</div>
+        <p class="hint">Отправь другу ссылку на игру. Бонусы за приглашённых скоро добавим.</p>
+        <button class="btn" id="invite">Позвать друга</button>
+      </div>
+    </section>
+
+    <!-- ЗАДАНИЯ -->
+    <section class="screen" id="s-tasks">
+      <div class="center">
+        <div class="big">📋</div>
+        <div class="h1">Задания</div>
+        <p class="hint">Скоро здесь появятся задания за награду в RatCoin.</p>
+      </div>
+    </section>
+  </div>
+
+  <nav>
+    <button class="on" data-s="play"><span>🐀</span>Играть</button>
+    <button data-s="shop"><span>🧀</span>Улучшения</button>
+    <button data-s="friends"><span>👥</span>Друзья</button>
+    <button data-s="tasks"><span>📋</span>Задания</button>
+  </nav>
+</div>
+
+<script>
+(function () {
+  'use strict';
+
+  // ---------- Настройки (можно менять) ----------
+  var BOT = 'RatCombat_game';      // username бота без @
+  var TAP_VALUE = 1;               // сколько RatCoin за один тап
+  var MAX_ENERGY = 1000;           // максимум энергии
+  var REGEN = 3;                   // энергии в секунду
+  var OFFLINE_CAP_H = 3;           // сколько часов дохода копится без игры
+  var KEY = 'ratcombat_v1';
+
+  var UPGRADES = [
+    { id: 'cheese',  icon: '🧀', name: 'Сыр на завтрак',    base: 100,    perHour: 5 },
+    { id: 'burrow',  icon: '🕳️', name: 'Новая нора',        base: 500,    perHour: 25 },
+    { id: 'chef',    icon: '🧑‍🍳', name: 'Крыса-повар',       base: 2000,   perHour: 100 },
+    { id: 'metro',   icon: '🚇', name: 'Метро-тоннели',     base: 10000,  perHour: 450 },
+    { id: 'factory', icon: '🏭', name: 'Сырная фабрика',    base: 50000,  perHour: 2000 },
+    { id: 'king',    icon: '👑', name: 'Король крыс',       base: 250000, perHour: 9000 }
+  ];
+  var LEAGUES = [
+    { n: 'Серая крыса',       min: 0 },
+    { n: 'Бронзовая крыса',   min: 5000 },
+    { n: 'Серебряная крыса',  min: 25000 },
+    { n: 'Золотая крыса',     min: 100000 },
+    { n: 'Платиновая крыса',  min: 1000000 },
+    { n: 'Алмазная крыса',    min: 10000000 },
+    { n: 'Король крыс',       min: 100000000 }
+  ];
+
+  // ---------- Telegram ----------
+  var tg = (window.Telegram && window.Telegram.WebApp) || null;
+  try {
+    if (tg) {
+      tg.ready(); tg.expand();
+      if (tg.setHeaderColor) tg.setHeaderColor('#0d0e1a');
+      if (tg.setBackgroundColor) tg.setBackgroundColor('#0d0e1a');
+      if (tg.disableVerticalSwipes) tg.disableVerticalSwipes();
+    }
+  } catch (e) {}
+
+  var $ = function (id) { return document.getElementById(id); };
+  var fmt = function (n) { return Math.floor(n).toLocaleString('ru-RU'); };
+
+  // ---------- Состояние ----------
+  function fresh() { return { coins: 0, earned: 0, energy: MAX_ENERGY, lv: {}, ts: Date.now() }; }
+  var S = fresh();
+  var dirty = false;
+
+  function profit() {
+    var p = 0;
+    UPGRADES.forEach(function (u) { p += (S.lv[u.id] || 0) * u.perHour; });
+    return p;
+  }
+  function cost(u) { return Math.round(u.base * Math.pow(1.55, S.lv[u.id] || 0)); }
+
+  function applyOffline() {
+    var now = Date.now();
+    var dt = Math.max(0, Math.min(now - (S.ts || now), OFFLINE_CAP_H * 3600000)) / 1000;
+    var gain = profit() / 3600 * dt;
+    S.coins += gain; S.earned += gain;
+    S.energy = Math.min(MAX_ENERGY, S.energy + REGEN * dt);
+    S.ts = now;
+  }
+
+  function parse(raw) {
+    try {
+      var o = JSON.parse(raw);
+      if (o && typeof o.earned === 'number') {
+        var s = fresh();
+        s.coins = +o.coins || 0; s.earned = +o.earned || 0;
+        s.energy = typeof o.energy === 'number' ? o.energy : MAX_ENERGY;
+        s.lv = o.lv || {}; s.ts = +o.ts || Date.now();
+        return s;
+      }
+    } catch (e) {}
+    return null;
+  }
+
+  function loadLocal() {
+    try { var s = parse(localStorage.getItem(KEY)); if (s) { S = s; } } catch (e) {}
+    applyOffline();
+  }
+  function loadCloud() {
+    try {
+      if (tg && tg.CloudStorage && tg.isVersionAtLeast && tg.isVersionAtLeast('6.9')) {
+        tg.CloudStorage.getItem(KEY, function (err, val) {
+          if (err || !val) return;
+          var c = parse(val);
+          if (c && c.earned > S.earned) { S = c; applyOffline(); renderAll(); renderShop(); }
+        });
+      }
+    } catch (e) {}
+  }
+  function save() {
+    S.ts = Date.now();
+    var raw = JSON.stringify(S);
+    try { localStorage.setItem(KEY, raw); } catch (e) {}
+    try {
+      if (tg && tg.CloudStorage && tg.isVersionAtLeast && tg.isVersionAtLeast('6.9')) {
+        tg.CloudStorage.setItem(KEY, raw);
+      }
+    } catch (e) {}
+    dirty = false;
+  }
+
+  // ---------- Отрисовка ----------
+  function league() {
+    var i = 0;
+    for (var k = 0; k < LEAGUES.length; k++) if (S.earned >= LEAGUES[k].min) i = k;
+    return i;
+  }
+  function renderAll() {
+    $('bal').textContent = fmt(S.coins);
+    $('pph').textContent = '+' + fmt(profit());
+    $('enTxt').textContent = fmt(S.energy) + ' / ' + MAX_ENERGY;
+    $('enFill').style.width = (S.energy / MAX_ENERGY * 100).toFixed(1) + '%';
+    var i = league(), cur = LEAGUES[i], nxt = LEAGUES[i + 1];
+    $('lgName').textContent = cur.n;
+    if (nxt) {
+      $('lgNext').textContent = fmt(S.earned) + ' / ' + fmt(nxt.min);
+      $('lgFill').style.width = Math.min(100, (S.earned - cur.min) / (nxt.min - cur.min) * 100).toFixed(1) + '%';
+    } else {
+      $('lgNext').textContent = 'Максимум';
+      $('lgFill').style.width = '100%';
+    }
+  }
+  function renderShop() {
+    $('shop').innerHTML = UPGRADES.map(function (u) {
+      var c = cost(u);
+      return '<button class="card' + (S.coins >= c ? '' : ' off') + '" data-id="' + u.id + '">' +
+        '<div class="ic">' + u.icon + '</div><div class="nm">' + u.name + '</div>' +
+        '<div class="pf">+' + fmt(u.perHour) + ' / час</div>' +
+        '<div class="lv">Уровень ' + (S.lv[u.id] || 0) + '</div>' +
+        '<div class="pr"><svg class="coin sm"><use href="#coin"/></svg>' + fmt(c) + '</div></button>';
+    }).join('');
+  }
+  function updateShop() {
+    var cards = $('shop').children;
+    for (var i = 0; i < cards.length; i++) {
+      var u = UPGRADES.filter(function (x) { return x.id === cards[i].getAttribute('data-id'); })[0];
+      if (u) cards[i].classList.toggle('off', S.coins < cost(u));
+    }
+  }
+
+  // ---------- Тап ----------
+  var tap = $('tap'), tiltT = 0, lastHaptic = 0;
+
+  function spawn(x, y, text) {
+    var el = document.createElement('div');
+    el.className = 'float';
+    el.textContent = text;
+    el.style.left = (x + (Math.random() * 30 - 15)) + 'px';
+    el.style.top = (y - 10) + 'px';
+    document.body.appendChild(el);
+    setTimeout(function () { if (el.parentNode) el.parentNode.removeChild(el); }, 900);
+  }
+  function tilt(e) {
+    var r = tap.getBoundingClientRect();
+    var x = (e.clientX - (r.left + r.width / 2)) / (r.width / 2);
+    var y = (e.clientY - (r.top + r.height / 2)) / (r.height / 2);
+    tap.style.transform = 'perspective(600px) rotateX(' + (-y * 14).toFixed(1) + 'deg) rotateY(' + (x * 14).toFixed(1) + 'deg) scale(.96)';
+    clearTimeout(tiltT);
+    tiltT = setTimeout(function () { tap.style.transform = ''; }, 110);
+  }
+  tap.addEventListener('pointerdown', function (e) {
+    e.preventDefault();
+    tilt(e);
+    if (S.energy < TAP_VALUE) return;
+    S.energy -= TAP_VALUE;
+    S.coins += TAP_VALUE;
+    S.earned += TAP_VALUE;
+    dirty = true;
+    spawn(e.clientX, e.clientY, '+' + TAP_VALUE);
+    var now = Date.now();
+    if (tg && tg.HapticFeedback && now - lastHaptic > 60) {
+      lastHaptic = now;
+      try { tg.HapticFeedback.impactOccurred('light'); } catch (er) {}
+    }
+    renderAll();
+  });
+
+  // ---------- Улучшения ----------
+  $('shop').addEventListener('click', function (e) {
+    var btn = e.target.closest ? e.target.closest('.card') : null;
+    if (!btn) return;
+    var u = UPGRADES.filter(function (x) { return x.id === btn.getAttribute('data-id'); })[0];
+    if (!u) return;
+    var c = cost(u);
+    if (S.coins < c) {
+      try { if (tg && tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('error'); } catch (er) {}
+      return;
+    }
+    S.coins -= c;
+    S.lv[u.id] = (S.lv[u.id] || 0) + 1;
+    dirty = true;
+    try { if (tg && tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success'); } catch (er) {}
+    renderAll(); renderShop(); save();
+  });
+
+  // ---------- Вкладки ----------
+  var tabs = document.querySelectorAll('nav button');
+  Array.prototype.forEach.call(tabs, function (b) {
+    b.addEventListener('click', function () {
+      Array.prototype.forEach.call(tabs, function (x) { x.classList.toggle('on', x === b); });
+      ['play', 'shop', 'friends', 'tasks'].forEach(function (n) {
+        $('s-' + n).classList.toggle('on', n === b.getAttribute('data-s'));
+      });
+      if (b.getAttribute('data-s') === 'shop') { renderShop(); }
+    });
+  });
+
+  // ---------- Друзья ----------
+  $('invite').addEventListener('click', function () {
+    var link = 'https://t.me/' + BOT;
+    var text = 'Залетай в Rat Combat: тапай крысу и зарабатывай RatCoin!';
+    var url = 'https://t.me/share/url?url=' + encodeURIComponent(link) + '&text=' + encodeURIComponent(text);
+    if (tg && tg.openTelegramLink) tg.openTelegramLink(url); else window.open(url, '_blank');
+  });
+
+  // ---------- Запуск ----------
+  var user = tg && tg.initDataUnsafe && tg.initDataUnsafe.user;
+  if (user && user.first_name) $('who').textContent = '🐀 ' + user.first_name;
+
+  loadLocal();
+  renderAll();
+  renderShop();
+  loadCloud();
+
+  // Раз в секунду: пассивный доход и восстановление энергии
+  setInterval(function () {
+    var gain = profit() / 3600;
+    S.coins += gain; S.earned += gain;
+    S.energy = Math.min(MAX_ENERGY, S.energy + REGEN);
+    if (gain > 0) dirty = true;
+    renderAll();
+    if ($('s-shop').classList.contains('on')) updateShop();
+  }, 1000);
+
+  // Сохранение каждые 3 секунды, если что-то менялось, и при сворачивании
+  setInterval(function () { if (dirty) save(); }, 3000);
+  document.addEventListener('visibilitychange', function () { if (document.hidden) save(); });
+  window.addEventListener('pagehide', save);
+
+  // Без зума и контекстного меню
+  document.addEventListener('gesturestart', function (e) { e.preventDefault(); });
+  document.addEventListener('contextmenu', function (e) { e.preventDefault(); });
+})();
+</script>
+</body>
+</html>
