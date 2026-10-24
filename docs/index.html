@@ -11,8 +11,18 @@
   --gold:#ffcf4a; --accent:#7c5cff; --green:#35d07f;
 }
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;-webkit-user-select:none;user-select:none}
-html,body{margin:0;height:100%;background:var(--bg);color:var(--text);
+html,body{margin:0;height:100%;color:var(--text);
   font-family:-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;overflow:hidden;overscroll-behavior:none}
+body{
+  background-color:var(--bg);
+  background-image:
+    radial-gradient(circle at 18% -8%, rgba(124,92,255,.30), transparent 55%),
+    radial-gradient(circle at 100% 15%, rgba(196,92,255,.18), transparent 50%),
+    radial-gradient(circle at 10% 95%, rgba(53,208,127,.10), transparent 45%),
+    radial-gradient(rgba(255,255,255,.045) 1px, transparent 1.4px);
+  background-size:auto,auto,auto,24px 24px;
+  background-attachment:fixed;
+}
 #app{display:flex;flex-direction:column;height:100%;max-width:520px;margin:0 auto;
   padding-top:env(safe-area-inset-top)}
 .top{display:flex;align-items:center;justify-content:space-between;padding:12px 16px 4px;gap:10px}
@@ -25,34 +35,44 @@ html,body{margin:0;height:100%;background:var(--bg);color:var(--text);
 .screen.on{display:flex}
 
 /* PLAY */
-.league{margin:6px 0 0}
+.stats{display:flex;gap:8px;margin:6px 0 10px}
+.stats .pill{flex:1;justify-content:center;font-size:12px;padding:6px 6px}
 .league .row{display:flex;justify-content:space-between;font-size:13px;color:var(--muted);margin-bottom:6px}
 .league .row b{color:var(--text)}
 .bar{height:8px;border-radius:8px;background:#242850;overflow:hidden}
 .bar i{display:block;height:100%;width:0;border-radius:8px;transition:width .3s}
 #lgFill{background:linear-gradient(90deg,#7c5cff,#c45cff)}
 #enFill{background:linear-gradient(90deg,#ffb12a,#ffe066)}
-.balance{display:flex;align-items:center;justify-content:center;gap:10px;margin:14px 0 2px;
+.balance{display:flex;align-items:center;justify-content:center;gap:10px;margin:10px 0 2px;
   font-size:44px;font-weight:800;letter-spacing:-.5px}
 .coin{width:1em;height:1em;flex:none}
 .coin.sm{width:16px;height:16px;vertical-align:-3px;margin-right:4px}
 .sub{text-align:center;color:var(--muted);font-size:13px}
 .tapwrap{flex:1;min-height:0;display:flex;align-items:center;justify-content:center}
-.tap{width:min(72vw,300px,42vh);aspect-ratio:1;border-radius:50%;display:flex;align-items:center;justify-content:center;
+.tap{width:min(72vw,300px,38vh);aspect-ratio:1;border-radius:50%;display:flex;align-items:center;justify-content:center;
   background:radial-gradient(circle at 35% 28%,#5a4cd0 0%,#2e2878 55%,#181642 100%);
   box-shadow:0 0 0 7px #2f2b7c,0 0 0 13px #3d37a3,0 18px 55px rgba(124,92,255,.5),inset 0 -10px 30px rgba(0,0,0,.4);
   touch-action:none;cursor:pointer;transition:transform .09s ease-out;will-change:transform}
 .tap svg{width:80%;height:80%;pointer-events:none;filter:drop-shadow(0 6px 10px rgba(0,0,0,.45))}
-.energy{padding:6px 0 14px}
+.energy{padding:6px 0 12px}
 .energy .row{display:flex;justify-content:space-between;font-size:13px;margin-bottom:6px}
 .float{position:fixed;pointer-events:none;font-weight:800;font-size:30px;color:#fff;z-index:50;
   text-shadow:0 2px 8px rgba(0,0,0,.7);animation:fly .9s ease-out forwards}
 @keyframes fly{from{opacity:1;transform:translate(-50%,-50%)}to{opacity:0;transform:translate(-50%,-200%)}}
+.buffbar{display:none;align-items:center;justify-content:center;gap:6px;font-size:12px;color:var(--gold);
+  background:rgba(255,207,74,.12);border:1px solid rgba(255,207,74,.35);border-radius:10px;padding:5px 8px;margin:0 0 8px}
+.buffbar.on{display:flex}
 
 /* SHOP */
 .h1{font-size:20px;font-weight:800;margin:10px 0 4px}
-.hint{color:var(--muted);font-size:13px;margin:0 0 12px}
-.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;overflow:auto;padding-bottom:12px}
+.hint{color:var(--muted);font-size:13px;margin:0 0 10px}
+.seg{display:flex;gap:6px;margin:0 0 10px}
+.seg button{flex:1;background:var(--card);border:1px solid var(--line);color:var(--muted);border-radius:12px;
+  padding:9px 4px;font:inherit;font-size:13px;font-weight:600;cursor:pointer}
+.seg button.on{color:#fff;border-color:var(--accent);background:#2a2560}
+.balmini{display:flex;align-items:center;gap:6px;font-weight:800;font-size:16px;margin:0 0 10px;color:var(--gold)}
+.grid{flex:1;min-height:0;display:grid;grid-template-columns:1fr 1fr;gap:10px;overflow-y:auto;align-content:start;
+  padding-bottom:14px;-webkit-overflow-scrolling:touch}
 .card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:12px;text-align:left;color:var(--text);
   font:inherit;cursor:pointer;display:flex;flex-direction:column;gap:3px}
 .card .ic{font-size:30px}
@@ -70,11 +90,49 @@ html,body{margin:0;height:100%;background:var(--bg);color:var(--text);
   font:inherit;font-weight:700;font-size:16px;cursor:pointer}
 .btn:active{transform:scale(.97)}
 
+/* PROFILE */
+#s-profile{overflow-y:auto;padding-bottom:16px;-webkit-overflow-scrolling:touch}
+.profcard{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:14px;margin-bottom:10px}
+.profTop{display:flex;justify-content:space-between;align-items:center;font-size:13px;color:var(--muted);margin-bottom:4px;gap:8px}
+.profTop b{color:var(--text)}
+.profBadge{background:#2a2560;color:#fff;border-radius:10px;padding:3px 9px;font-size:12px;font-weight:700;white-space:nowrap}
+.profRatWrap{display:flex;flex-direction:column;align-items:center;gap:6px;padding:6px 0 2px}
+.profRat{width:min(44vw,180px);aspect-ratio:1;display:flex;align-items:center;justify-content:center}
+.profRat svg{width:100%;height:100%;filter:drop-shadow(0 8px 16px rgba(0,0,0,.4));transition:filter .2s}
+.profRat.sad svg{filter:grayscale(.4) brightness(.82)}
+.profRat.bounce{animation:bounce .35s ease}
+@keyframes bounce{0%{transform:scale(1)}45%{transform:scale(1.1)}100%{transform:scale(1)}}
+.profRat.evo{animation:evo .7s ease}
+@keyframes evo{0%{transform:scale(.55) rotate(-8deg);opacity:.2}55%{transform:scale(1.18) rotate(5deg);opacity:1}100%{transform:scale(1) rotate(0)}}
+.mood{text-align:center;font-size:14px;font-weight:700;margin-bottom:6px}
+.mood.ok{color:var(--green)}
+.mood.bad{color:#ff8a6b}
+.feedRow .row{display:flex;justify-content:space-between;font-size:13px;margin-bottom:6px}
+#feedFill{background:linear-gradient(90deg,#35d07f,#9dff5c)}
+.feedBtn{width:100%;margin-top:10px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px}
+.grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:10px}
+.statcard{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:10px;text-align:center}
+.sc-k{font-size:11px;color:var(--muted)}
+.sc-v{font-size:15px;font-weight:800;margin-top:3px}
+.nextcard{background:var(--card);border:1px dashed var(--line);border-radius:14px;padding:12px;font-size:13px;color:var(--muted);line-height:1.6}
+.nextcard b{color:var(--text)}
+
+/* SETTINGS */
+#s-settings{overflow-y:auto;padding-bottom:16px}
+.setRow{display:flex;justify-content:space-between;align-items:center;background:var(--card);
+  border:1px solid var(--line);border-radius:14px;padding:14px;margin-bottom:10px;gap:10px}
+.setRow .nm{font-weight:700;font-size:14px}
+.setRow .ds{font-size:12px;color:var(--muted);margin-top:2px}
+.toggle{background:#242850;border:1px solid var(--line);color:var(--text);border-radius:10px;padding:8px 16px;
+  font:inherit;font-weight:700;cursor:pointer;white-space:nowrap}
+.toggle.on{background:linear-gradient(90deg,#35d07f,#2fae6c);border-color:transparent;color:#06250f}
+
 /* NAV */
-nav{display:flex;gap:6px;padding:8px 10px calc(8px + env(safe-area-inset-bottom));background:#111227;border-top:1px solid var(--line)}
-nav button{flex:1;background:none;border:0;color:var(--muted);font:inherit;font-size:12px;padding:6px 0;border-radius:12px;
+nav{display:flex;gap:4px;padding:8px 8px calc(8px + env(safe-area-inset-bottom));background:#111227;border-top:1px solid var(--line)}
+nav button{flex:1;background:none;border:0;color:var(--muted);font:inherit;font-size:10.5px;padding:6px 0;border-radius:12px;
   display:flex;flex-direction:column;align-items:center;gap:2px;cursor:pointer}
-nav button span{font-size:22px}
+nav button span{font-size:19px}
 nav button.on{color:var(--text);background:var(--card)}
 </style>
 </head>
@@ -89,15 +147,47 @@ nav button.on{color:var(--text);background:var(--card)}
 
 <div id="app">
   <div class="top">
-    <div class="who" id="who">🐀 Игрок</div>
+    <div class="who" id="who">🐀 Rat Combat</div>
     <div class="pill">Доход в час <b id="pph">+0</b></div>
   </div>
 
   <div class="screens">
+    <!-- ПРОФИЛЬ -->
+    <section class="screen" id="s-profile">
+      <div class="h1">Моя крыса</div>
+      <div class="profcard">
+        <div class="profTop">
+          <span>Стадия: <b id="profStage">Серая крыса</b></span>
+          <span class="profBadge" id="profLvl">Ур. 1</span>
+        </div>
+        <div class="profRatWrap">
+          <div class="profRat" id="profRat"></div>
+          <div class="mood ok" id="profMood">😋 Сыта</div>
+        </div>
+        <div class="feedRow">
+          <div class="row"><span>🍖 Кормление за день</span><span id="feedTxt">0 / 200</span></div>
+          <div class="bar"><i id="feedFill" style="width:0%"></i></div>
+          <p class="hint" id="feedHint"></p>
+          <button class="btn feedBtn" id="feedBtn">Покормить 🧀</button>
+        </div>
+      </div>
+      <div class="grid3">
+        <div class="statcard"><div class="sc-k">Доход крысы</div><div class="sc-v" id="profIncome">+0/ч</div></div>
+        <div class="statcard"><div class="sc-k">Всего кликов</div><div class="sc-v" id="profTaps">0</div></div>
+        <div class="statcard"><div class="sc-k">Заработано всего</div><div class="sc-v" id="profEarned">0</div></div>
+      </div>
+      <div class="nextcard" id="nextCard"></div>
+    </section>
+
     <!-- ИГРАТЬ -->
     <section class="screen on" id="s-play">
+      <div class="stats">
+        <div class="pill">👆 <b id="tapVal">+1</b> за тап</div>
+        <div class="pill">👆 Всего кликов: <b id="tapsVal">0</b></div>
+      </div>
+      <div class="buffbar" id="buffbar">🔥 Бонус за кормление: ×1.1 к тапу — <span id="buffTime">24:00:00</span></div>
       <div class="league">
-        <div class="row"><span>Лига: <b id="lgName">Серая крыса</b></span><span id="lgNext"></span></div>
+        <div class="row"><span>Лига: <b id="lgName">Серая крыса</b> <span id="lgMult"></span></span><span id="lgNext"></span></div>
         <div class="bar"><i id="lgFill"></i></div>
       </div>
       <div class="balance"><svg class="coin"><use href="#coin"/></svg><span id="bal">0</span></div>
@@ -122,15 +212,21 @@ nav button.on{color:var(--text);background:var(--card)}
       </div>
 
       <div class="energy">
-        <div class="row"><span>⚡ Энергия</span><span id="enTxt">1000 / 1000</span></div>
+        <div class="row"><span>⚡ Энергия</span><span id="enTxt">300 / 300</span></div>
         <div class="bar"><i id="enFill" style="width:100%"></i></div>
       </div>
     </section>
 
     <!-- УЛУЧШЕНИЯ -->
     <section class="screen" id="s-shop">
-      <div class="h1">Норка</div>
-      <p class="hint">Покупай улучшения: они приносят RatCoin каждый час, даже когда ты не в игре (до 3 часов).</p>
+      <div class="h1">Улучшения</div>
+      <div class="balmini"><svg class="coin sm"><use href="#coin"/></svg><span id="balShop">0</span></div>
+      <div class="seg" id="seg">
+        <button class="on" data-cat="tap">👆 Тап</button>
+        <button data-cat="energy">⚡ Энергия</button>
+        <button data-cat="passive">🧀 Доход</button>
+      </div>
+      <p class="hint" id="catHint"></p>
       <div class="grid" id="shop"></div>
     </section>
 
@@ -152,13 +248,29 @@ nav button.on{color:var(--text);background:var(--card)}
         <p class="hint">Скоро здесь появятся задания за награду в RatCoin.</p>
       </div>
     </section>
+
+    <!-- НАСТРОЙКИ -->
+    <section class="screen" id="s-settings">
+      <div class="h1">Настройки</div>
+      <div class="setRow">
+        <div><div class="nm">🔔 Звуки эффектов</div><div class="ds">Тапы, покупки, вкладки, кормление</div></div>
+        <button class="toggle" id="toggleSound">Вкл</button>
+      </div>
+      <div class="setRow">
+        <div><div class="nm">🎵 Фоновая музыка</div><div class="ds">Спокойная мелодия во время игры</div></div>
+        <button class="toggle" id="toggleMusic">Выкл</button>
+      </div>
+      <p class="hint">Музыка запускается после первого нажатия где-либо в игре — так требуют правила Telegram и браузеров.</p>
+    </section>
   </div>
 
   <nav>
+    <button data-s="profile"><span>🪪</span>Профиль</button>
     <button class="on" data-s="play"><span>🐀</span>Играть</button>
-    <button data-s="shop"><span>🧀</span>Улучшения</button>
+    <button data-s="shop"><span>🧀</span>Улучш.</button>
     <button data-s="friends"><span>👥</span>Друзья</button>
     <button data-s="tasks"><span>📋</span>Задания</button>
+    <button data-s="settings"><span>⚙️</span>Настр.</button>
   </nav>
 </div>
 
@@ -168,28 +280,73 @@ nav button.on{color:var(--text);background:var(--card)}
 
   // ---------- Настройки (можно менять) ----------
   var BOT = 'RatCombat_game';      // username бота без @
-  var TAP_VALUE = 1;               // сколько RatCoin за один тап
-  var MAX_ENERGY = 1000;           // максимум энергии
-  var REGEN = 3;                   // энергии в секунду
+  var BASE_TAP = 1;                // RatCoin за тап без улучшений и множителей
+  var BASE_MAX = 300;              // запас энергии без улучшений
+  var BASE_REGEN = 2;              // восстановление энергии в секунду без улучшений
+  var ENERGY_PER_TAP = 1;          // сколько энергии тратит один тап
   var OFFLINE_CAP_H = 3;           // сколько часов дохода копится без игры
+  var MAX_FINGERS = 2;             // максимум одновременных касаний, которые засчитываются
+  var FEED_GOAL = 200;             // кликов кормления в день, чтобы крыса была сыта
+  var FEED_BONUS = 400;            // двойная норма: даёт временный бонус к тапу
+  var BUFF_MULT = 1.1;             // множитель тапа от бонуса кормления
+  var BUFF_HOURS = 24;             // на сколько часов действует бонус
   var KEY = 'ratcombat_v1';
 
+  // cat: tap | energy | passive.  fx: что даёт один уровень (tap, maxEnergy, regen, perHour)
+  // base: цена первого уровня, g: во сколько раз дорожает каждый следующий уровень
   var UPGRADES = [
-    { id: 'cheese',  icon: '🧀', name: 'Сыр на завтрак',    base: 100,    perHour: 5 },
-    { id: 'burrow',  icon: '🕳️', name: 'Новая нора',        base: 500,    perHour: 25 },
-    { id: 'chef',    icon: '🧑‍🍳', name: 'Крыса-повар',       base: 2000,   perHour: 100 },
-    { id: 'metro',   icon: '🚇', name: 'Метро-тоннели',     base: 10000,  perHour: 450 },
-    { id: 'factory', icon: '🏭', name: 'Сырная фабрика',    base: 50000,  perHour: 2000 },
-    { id: 'king',    icon: '👑', name: 'Король крыс',       base: 250000, perHour: 9000 }
+    // --- сила тапа: +2, +4, +8 ... за тап (до множителей лиги и бонуса) ---
+    { id: 'paws',    cat: 'tap', icon: '👊', name: 'Крепкие лапки',    base: 500,      g: 1.8, fx: 'tap', v: 2 },
+    { id: 'claws',   cat: 'tap', icon: '🗡️', name: 'Острые когти',     base: 6000,     g: 1.8, fx: 'tap', v: 4 },
+    { id: 'steel',   cat: 'tap', icon: '⚔️', name: 'Стальные когти',   base: 50000,    g: 1.8, fx: 'tap', v: 8 },
+    { id: 'gold',    cat: 'tap', icon: '🥇', name: 'Золотые когти',    base: 400000,   g: 1.8, fx: 'tap', v: 16 },
+    { id: 'diamond', cat: 'tap', icon: '💎', name: 'Алмазные когти',   base: 3000000,  g: 1.8, fx: 'tap', v: 32 },
+    { id: 'royal',   cat: 'tap', icon: '👑', name: 'Королевская лапа', base: 25000000, g: 1.8, fx: 'tap', v: 64 },
+
+    // --- энергия: базовый запас теперь меньше (300), поэтому прокачек больше ---
+    { id: 'pouch',    cat: 'energy', icon: '🎒', name: 'Защёчные мешки',          base: 250,    g: 1.55, fx: 'maxEnergy', v: 150 },
+    { id: 'regen1',   cat: 'energy', icon: '🔋', name: 'Быстрое восстановление',  base: 600,    g: 1.7,  fx: 'regen',     v: 1 },
+    { id: 'pouch2',   cat: 'energy', icon: '🧺', name: 'Большая кладовая',        base: 3000,   g: 1.6,  fx: 'maxEnergy', v: 400 },
+    { id: 'bigcheese',cat: 'energy', icon: '⚡', name: 'Энергетический сыр',      base: 15000,  g: 1.6,  fx: 'maxEnergy', v: 1200 },
+    { id: 'regen2',   cat: 'energy', icon: '🌩️', name: 'Турбо-восстановление',    base: 20000,  g: 1.85, fx: 'regen',     v: 3 },
+    { id: 'pouch3',   cat: 'energy', icon: '🏺', name: 'Подземный склад',         base: 120000, g: 1.6,  fx: 'maxEnergy', v: 3000 },
+    { id: 'regen3',   cat: 'energy', icon: '🌪️', name: 'Вихрь энергии',           base: 180000, g: 1.9,  fx: 'regen',     v: 8 },
+
+    // --- доход в час ---
+    { id: 'cheese',  cat: 'passive', icon: '🧀', name: 'Сыр на завтрак',   base: 100,       g: 1.55, fx: 'perHour', v: 5 },
+    { id: 'burrow',  cat: 'passive', icon: '🕳️', name: 'Новая нора',       base: 500,       g: 1.55, fx: 'perHour', v: 25 },
+    { id: 'chef',    cat: 'passive', icon: '🧑‍🍳', name: 'Крыса-повар',      base: 2000,      g: 1.55, fx: 'perHour', v: 100 },
+    { id: 'metro',   cat: 'passive', icon: '🚇', name: 'Метро-тоннели',    base: 10000,     g: 1.55, fx: 'perHour', v: 450 },
+    { id: 'factory', cat: 'passive', icon: '🏭', name: 'Сырная фабрика',   base: 50000,     g: 1.55, fx: 'perHour', v: 2000 },
+    { id: 'king',    cat: 'passive', icon: '👑', name: 'Король крыс',      base: 250000,    g: 1.55, fx: 'perHour', v: 9000 },
+    { id: 'bourse',  cat: 'passive', icon: '📈', name: 'Крысиная биржа',   base: 700000,    g: 1.55, fx: 'perHour', v: 22000 },
+    { id: 'bank',    cat: 'passive', icon: '🏦', name: 'Крысиный банк',    base: 2000000,   g: 1.55, fx: 'perHour', v: 55000 },
+    { id: 'city',    cat: 'passive', icon: '🏙️', name: 'Подземный город',  base: 8000000,   g: 1.55, fx: 'perHour', v: 190000 },
+    { id: 'space',   cat: 'passive', icon: '🚀', name: 'Космическая крыса', base: 35000000, g: 1.55, fx: 'perHour', v: 750000 },
+    { id: 'empire',  cat: 'passive', icon: '🌍', name: 'Крысиная империя', base: 150000000, g: 1.55, fx: 'perHour', v: 3000000 }
   ];
+  var CAT_HINT = {
+    tap: 'Чем сильнее лапы, тем больше RatCoin за каждый тап.',
+    energy: 'Больше энергии и быстрее восстановление: можно тапать дольше.',
+    passive: 'Приносят RatCoin каждый час, даже когда ты не в игре (до 3 часов).'
+  };
+  // Лига теперь считается по количеству кликов за всё время, а не по монетам.
+  // Каждая лига даёт постоянный множитель к силе тапа.
   var LEAGUES = [
-    { n: 'Серая крыса',       min: 0 },
-    { n: 'Бронзовая крыса',   min: 5000 },
-    { n: 'Серебряная крыса',  min: 25000 },
-    { n: 'Золотая крыса',     min: 100000 },
-    { n: 'Платиновая крыса',  min: 1000000 },
-    { n: 'Алмазная крыса',    min: 10000000 },
-    { n: 'Король крыс',       min: 100000000 }
+    { n: 'Серая крыса',       min: 0,      mult: 1.00 },
+    { n: 'Бронзовая крыса',   min: 200,    mult: 1.10 },
+    { n: 'Серебряная крыса',  min: 1000,   mult: 1.20 },
+    { n: 'Золотая крыса',     min: 5000,   mult: 1.35 },
+    { n: 'Платиновая крыса',  min: 20000,  mult: 1.50 },
+    { n: 'Алмазная крыса',    min: 75000,  mult: 1.75 },
+    { n: 'Король крыс',       min: 250000, mult: 2.00 }
+  ];
+  var STAGES = [
+    { name: 'Серая крыса',     need: 0,  perHour: 0 },
+    { name: 'Ухоженная крыса', need: 3,  perHour: 50 },
+    { name: 'Крыса-боец',      need: 10, perHour: 200 },
+    { name: 'Крыса-бандит',    need: 25, perHour: 800 },
+    { name: 'Крысиный босс',   need: 60, perHour: 3000 }
   ];
 
   // ---------- Telegram ----------
@@ -205,25 +362,184 @@ nav button.on{color:var(--text);background:var(--card)}
 
   var $ = function (id) { return document.getElementById(id); };
   var fmt = function (n) { return Math.floor(n).toLocaleString('ru-RU'); };
+  var todayKey = function () {
+    var d = new Date();
+    return d.getFullYear() + '-' + (d.getMonth() + 1) + '-' + d.getDate();
+  };
+
+  // ---------- Звук и музыка ----------
+  var soundOn = true, musicOn = false;
+  try { soundOn = localStorage.getItem('ratcombat_sound') !== '0'; } catch (e) {}
+  try { musicOn = localStorage.getItem('ratcombat_music') === '1'; } catch (e) {}
+
+  var actx = null;
+  function ctx() {
+    if (!actx) {
+      try { actx = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { actx = null; }
+    }
+    return actx;
+  }
+  function beep(freq, dur, type, vol) {
+    if (!soundOn) return;
+    var c = ctx();
+    if (!c) return;
+    try {
+      var o = c.createOscillator(), g = c.createGain();
+      o.type = type || 'sine'; o.frequency.value = freq;
+      g.gain.value = vol || 0.05;
+      o.connect(g); g.connect(c.destination);
+      o.start();
+      g.gain.exponentialRampToValueAtTime(0.0001, c.currentTime + dur);
+      o.stop(c.currentTime + dur);
+    } catch (e) {}
+  }
+  var lastTapSnd = 0;
+  function sndTap() {
+    var now = Date.now();
+    if (now - lastTapSnd < 55) return; // чтобы частые тапы не превращались в кашу
+    lastTapSnd = now;
+    beep(300 + Math.random() * 40, 0.05, 'square', 0.035);
+  }
+  function sndTab() { beep(520, 0.05, 'triangle', 0.04); }
+  function sndBuy() { beep(700, 0.08, 'sine', 0.05); setTimeout(function () { beep(980, 0.1, 'sine', 0.045); }, 70); }
+  function sndErr() { beep(160, 0.12, 'sawtooth', 0.05); }
+  function sndFeed() { beep(420, 0.06, 'triangle', 0.04); }
+  function sndDone() { beep(660, 0.12, 'sine', 0.05); setTimeout(function () { beep(880, 0.16, 'sine', 0.05); }, 110); }
+  function sndEvo() {
+    beep(520, 0.1, 'sine', 0.05);
+    setTimeout(function () { beep(780, 0.12, 'sine', 0.05); }, 90);
+    setTimeout(function () { beep(1040, 0.2, 'sine', 0.05); }, 180);
+  }
+  function sndBuff() {
+    beep(600, 0.1, 'sine', 0.05);
+    setTimeout(function () { beep(900, 0.1, 'sine', 0.05); }, 90);
+    setTimeout(function () { beep(1200, 0.16, 'sine', 0.05); }, 180);
+  }
+
+  // Простая процедурная фоновая музыка (без внешних файлов): тихий плавающий пэд + редкие ноты.
+  var musicNodes = null, musicTimer = null;
+  var SCALE = [261.63, 293.66, 329.63, 392.0, 440.0, 523.25]; // до-мажор, приятный звукоряд
+  function startMusic() {
+    if (musicNodes || !musicOn) return;
+    var c = ctx();
+    if (!c) return;
+    try {
+      var master = c.createGain();
+      master.gain.value = 0.0001;
+      master.connect(c.destination);
+      master.gain.linearRampToValueAtTime(0.05, c.currentTime + 2);
+
+      var pad = [196.0, 246.94, 329.63]; // тихий фоновый аккорд
+      var osc = pad.map(function (f) {
+        var o = c.createOscillator(), g = c.createGain();
+        o.type = 'sine'; o.frequency.value = f; g.gain.value = 0.33;
+        o.connect(g); g.connect(master); o.start();
+        return o;
+      });
+      musicNodes = { master: master, osc: osc };
+
+      musicTimer = setInterval(function () {
+        if (!musicOn) return;
+        var f = SCALE[Math.floor(Math.random() * SCALE.length)];
+        var o = c.createOscillator(), g = c.createGain();
+        o.type = 'sine'; o.frequency.value = f; g.gain.value = 0.0001;
+        o.connect(g); g.connect(master);
+        o.start();
+        g.gain.linearRampToValueAtTime(0.06, c.currentTime + 0.4);
+        g.gain.exponentialRampToValueAtTime(0.0001, c.currentTime + 2.2);
+        o.stop(c.currentTime + 2.3);
+      }, 1800);
+    } catch (e) {}
+  }
+  function stopMusic() {
+    if (musicTimer) { clearInterval(musicTimer); musicTimer = null; }
+    if (musicNodes) {
+      try {
+        var c = ctx(), m = musicNodes.master;
+        m.gain.exponentialRampToValueAtTime(0.0001, c.currentTime + 0.6);
+        setTimeout(function () {
+          musicNodes.osc.forEach(function (o) { try { o.stop(); } catch (e) {} });
+        }, 700);
+      } catch (e) {}
+      musicNodes = null;
+    }
+  }
+  var userInteracted = false;
+  function onFirstInteraction() {
+    if (userInteracted) return;
+    userInteracted = true;
+    if (musicOn) startMusic();
+  }
 
   // ---------- Состояние ----------
-  function fresh() { return { coins: 0, earned: 0, energy: MAX_ENERGY, lv: {}, ts: Date.now() }; }
+  function freshFeed() {
+    return { day: todayKey(), today: 0, satiated: true, totalFedDays: 0, streak: 0, buffUntil: 0, bonusGiven: false };
+  }
+  function fresh() {
+    return { coins: 0, earned: 0, taps: 0, energy: BASE_MAX, lv: {}, ts: Date.now(), feed: freshFeed() };
+  }
   var S = fresh();
   var dirty = false;
+  var shopCat = 'tap';
 
-  function profit() {
-    var p = 0;
-    UPGRADES.forEach(function (u) { p += (S.lv[u.id] || 0) * u.perHour; });
-    return p;
+  function lvl(u) { return S.lv[u.id] || 0; }
+  function sum(fx) {
+    var t = 0;
+    UPGRADES.forEach(function (u) { if (u.fx === fx) t += lvl(u) * u.v; });
+    return t;
   }
-  function cost(u) { return Math.round(u.base * Math.pow(1.55, S.lv[u.id] || 0)); }
+  function leagueIndex() {
+    var i = 0;
+    for (var k = 0; k < LEAGUES.length; k++) if (S.taps >= LEAGUES[k].min) i = k;
+    return i;
+  }
+  function buffActive() { return S.feed.buffUntil && S.feed.buffUntil > Date.now(); }
+  function tapValue() {
+    var base = BASE_TAP + sum('tap');
+    var mult = LEAGUES[leagueIndex()].mult * (buffActive() ? BUFF_MULT : 1);
+    return Math.max(1, Math.round(base * mult));
+  }
+  function maxEnergy() { return BASE_MAX + sum('maxEnergy'); }
+  function regen() { return BASE_REGEN + sum('regen'); }
+  function stageIndex() {
+    var i = 0;
+    for (var k = 0; k < STAGES.length; k++) if (S.feed.totalFedDays >= STAGES[k].need) i = k;
+    return i;
+  }
+  function stageIncome() { return S.feed.satiated ? STAGES[stageIndex()].perHour : 0; }
+  function profit() { return sum('perHour') + stageIncome(); }
+  function cost(u) { return Math.round(u.base * Math.pow(u.g, lvl(u))); }
+
+  function effectText(u) {
+    if (u.fx === 'tap') return '+' + fmt(u.v) + ' за тап';
+    if (u.fx === 'maxEnergy') return '+' + fmt(u.v) + ' к запасу';
+    if (u.fx === 'regen') return '+' + fmt(u.v) + ' энергии в сек';
+    return '+' + fmt(u.v) + ' / час';
+  }
+
+  function checkFeedDay() {
+    var tk = todayKey();
+    if (S.feed.day === tk) return;
+    if (S.feed.today >= FEED_GOAL) {
+      S.feed.totalFedDays += 1;
+      S.feed.streak += 1;
+      S.feed.satiated = true;
+    } else {
+      S.feed.streak = 0;
+      S.feed.satiated = false;
+    }
+    S.feed.day = tk;
+    S.feed.today = 0;
+    S.feed.bonusGiven = false;
+    dirty = true;
+  }
 
   function applyOffline() {
     var now = Date.now();
     var dt = Math.max(0, Math.min(now - (S.ts || now), OFFLINE_CAP_H * 3600000)) / 1000;
     var gain = profit() / 3600 * dt;
     S.coins += gain; S.earned += gain;
-    S.energy = Math.min(MAX_ENERGY, S.energy + REGEN * dt);
+    S.energy = Math.min(maxEnergy(), S.energy + regen() * dt);
     S.ts = now;
   }
 
@@ -232,9 +548,20 @@ nav button.on{color:var(--text);background:var(--card)}
       var o = JSON.parse(raw);
       if (o && typeof o.earned === 'number') {
         var s = fresh();
-        s.coins = +o.coins || 0; s.earned = +o.earned || 0;
-        s.energy = typeof o.energy === 'number' ? o.energy : MAX_ENERGY;
+        s.coins = +o.coins || 0; s.earned = +o.earned || 0; s.taps = +o.taps || 0;
+        s.energy = typeof o.energy === 'number' ? o.energy : BASE_MAX;
         s.lv = o.lv || {}; s.ts = +o.ts || Date.now();
+        if (o.feed && typeof o.feed === 'object') {
+          s.feed = {
+            day: o.feed.day || todayKey(),
+            today: +o.feed.today || 0,
+            satiated: o.feed.satiated !== false,
+            totalFedDays: +o.feed.totalFedDays || 0,
+            streak: +o.feed.streak || 0,
+            buffUntil: +o.feed.buffUntil || 0,
+            bonusGiven: !!o.feed.bonusGiven
+          };
+        }
         return s;
       }
     } catch (e) {}
@@ -243,6 +570,7 @@ nav button.on{color:var(--text);background:var(--card)}
 
   function loadLocal() {
     try { var s = parse(localStorage.getItem(KEY)); if (s) { S = s; } } catch (e) {}
+    checkFeedDay();
     applyOffline();
   }
   function loadCloud() {
@@ -251,7 +579,10 @@ nav button.on{color:var(--text);background:var(--card)}
         tg.CloudStorage.getItem(KEY, function (err, val) {
           if (err || !val) return;
           var c = parse(val);
-          if (c && c.earned > S.earned) { S = c; applyOffline(); renderAll(); renderShop(); }
+          if (c && c.earned > S.earned) {
+            S = c; checkFeedDay(); applyOffline();
+            renderAll(); renderShop(); renderProfile();
+          }
         });
       }
     } catch (e) {}
@@ -268,47 +599,139 @@ nav button.on{color:var(--text);background:var(--card)}
     dirty = false;
   }
 
-  // ---------- Отрисовка ----------
-  function league() {
-    var i = 0;
-    for (var k = 0; k < LEAGUES.length; k++) if (S.earned >= LEAGUES[k].min) i = k;
-    return i;
-  }
+  // ---------- Отрисовка: Играть ----------
   function renderAll() {
+    var max = maxEnergy();
     $('bal').textContent = fmt(S.coins);
+    $('balShop').textContent = fmt(S.coins);
     $('pph').textContent = '+' + fmt(profit());
-    $('enTxt').textContent = fmt(S.energy) + ' / ' + MAX_ENERGY;
-    $('enFill').style.width = (S.energy / MAX_ENERGY * 100).toFixed(1) + '%';
-    var i = league(), cur = LEAGUES[i], nxt = LEAGUES[i + 1];
+    $('tapVal').textContent = '+' + fmt(tapValue());
+    $('tapsVal').textContent = fmt(S.taps);
+    $('enTxt').textContent = fmt(S.energy) + ' / ' + fmt(max);
+    $('enFill').style.width = Math.min(100, S.energy / max * 100).toFixed(1) + '%';
+
+    var i = leagueIndex(), cur = LEAGUES[i], nxt = LEAGUES[i + 1];
     $('lgName').textContent = cur.n;
+    $('lgMult').textContent = '×' + cur.mult.toFixed(2);
     if (nxt) {
-      $('lgNext').textContent = fmt(S.earned) + ' / ' + fmt(nxt.min);
-      $('lgFill').style.width = Math.min(100, (S.earned - cur.min) / (nxt.min - cur.min) * 100).toFixed(1) + '%';
+      $('lgNext').textContent = fmt(S.taps) + ' / ' + fmt(nxt.min) + ' кликов';
+      $('lgFill').style.width = Math.min(100, (S.taps - cur.min) / (nxt.min - cur.min) * 100).toFixed(1) + '%';
     } else {
       $('lgNext').textContent = 'Максимум';
       $('lgFill').style.width = '100%';
     }
+
+    var bb = $('buffbar');
+    if (buffActive()) {
+      bb.classList.add('on');
+      var left = S.feed.buffUntil - Date.now();
+      var h = Math.floor(left / 3600000), m = Math.floor(left % 3600000 / 60000), s2 = Math.floor(left % 60000 / 1000);
+      $('buffTime').textContent = (h < 10 ? '0' : '') + h + ':' + (m < 10 ? '0' : '') + m + ':' + (s2 < 10 ? '0' : '') + s2;
+    } else {
+      bb.classList.remove('on');
+    }
   }
+
+  // ---------- Отрисовка: Улучшения ----------
   function renderShop() {
-    $('shop').innerHTML = UPGRADES.map(function (u) {
+    $('catHint').textContent = CAT_HINT[shopCat];
+    $('shop').innerHTML = UPGRADES.filter(function (u) { return u.cat === shopCat; }).map(function (u) {
       var c = cost(u);
       return '<button class="card' + (S.coins >= c ? '' : ' off') + '" data-id="' + u.id + '">' +
         '<div class="ic">' + u.icon + '</div><div class="nm">' + u.name + '</div>' +
-        '<div class="pf">+' + fmt(u.perHour) + ' / час</div>' +
-        '<div class="lv">Уровень ' + (S.lv[u.id] || 0) + '</div>' +
+        '<div class="pf">' + effectText(u) + '</div>' +
+        '<div class="lv">Уровень ' + lvl(u) + '</div>' +
         '<div class="pr"><svg class="coin sm"><use href="#coin"/></svg>' + fmt(c) + '</div></button>';
     }).join('');
   }
+  function findUpgrade(id) { return UPGRADES.filter(function (x) { return x.id === id; })[0]; }
   function updateShop() {
     var cards = $('shop').children;
     for (var i = 0; i < cards.length; i++) {
-      var u = UPGRADES.filter(function (x) { return x.id === cards[i].getAttribute('data-id'); })[0];
+      var u = findUpgrade(cards[i].getAttribute('data-id'));
       if (u) cards[i].classList.toggle('off', S.coins < cost(u));
     }
   }
 
-  // ---------- Тап ----------
+  // ---------- Крыса (SVG по стадиям) ----------
+  function ratSvg(i, sad) {
+    var body = ['#9aa3b5', '#d7dced', '#b7bfcc', '#747a8c', '#c9b36b'][i] || '#9aa3b5';
+    var belly = ['#e4e8ef', '#f3f5fa', '#e4e8ef', '#9a9fb0', '#f0e2a8'][i] || '#e4e8ef';
+    var eyes = sad
+      ? '<path d="M68 100q7 6 14 0M118 100q7 6 14 0" stroke="#1b1f2a" stroke-width="3" fill="none" stroke-linecap="round"/>'
+      : '<circle cx="75" cy="100" r="8.5" fill="#1b1f2a"/><circle cx="125" cy="100" r="8.5" fill="#1b1f2a"/><circle cx="78" cy="97" r="2.8" fill="#fff"/><circle cx="128" cy="97" r="2.8" fill="#fff"/>';
+    var mouth = sad
+      ? '<path d="M100 128v6M92 138q8-6 16 0" fill="none" stroke="#1b1f2a" stroke-width="2.5" stroke-linecap="round"/>'
+      : '<path d="M100 128v7M100 135q-10 8-20 2M100 135q10 8 20 2" fill="none" stroke="#1b1f2a" stroke-width="2.5" stroke-linecap="round"/>';
+    var extra = '';
+    if (i === 1) extra += '<path d="M86 150L76 145L76 156Z" fill="#ff5c7a"/><path d="M114 150L124 145L124 156Z" fill="#ff5c7a"/><circle cx="100" cy="150" r="4.5" fill="#c23b58"/>';
+    if (i === 2) extra += '<rect x="58" y="76" width="84" height="12" rx="6" fill="#ff5c3c"/>';
+    if (i === 3) extra += '<path d="M34 150Q100 198 166 150L166 196Q100 220 34 196Z" fill="#191919"/><path d="M70 150Q100 180 130 150" fill="none" stroke="#ffcf4a" stroke-width="5"/><circle cx="100" cy="176" r="7" fill="#ffcf4a"/>';
+    if (i === 4) extra += '<path d="M66 54L78 78L90 58L100 78L110 58L122 78L134 54L128 88L72 88Z" fill="#ffcf4a" stroke="#c98a00" stroke-width="2"/><rect x="60" y="92" width="32" height="17" rx="7" fill="#111"/><rect x="108" y="92" width="32" height="17" rx="7" fill="#111"/><rect x="92" y="98" width="16" height="5" fill="#111"/><path d="M34 150Q100 198 166 150L166 200Q100 226 34 200Z" fill="#8c1c2f"/>';
+    return '<svg viewBox="0 0 200 210" xmlns="http://www.w3.org/2000/svg">' +
+      '<circle cx="52" cy="58" r="33" fill="' + body + '"/><circle cx="52" cy="58" r="21" fill="#f4a6b8"/>' +
+      '<circle cx="148" cy="58" r="33" fill="' + body + '"/><circle cx="148" cy="58" r="21" fill="#f4a6b8"/>' +
+      '<ellipse cx="100" cy="112" rx="68" ry="62" fill="' + body + '"/>' +
+      '<ellipse cx="100" cy="136" rx="38" ry="28" fill="' + belly + '"/>' +
+      eyes + mouth +
+      '<ellipse cx="100" cy="122" rx="8" ry="6" fill="#ee819c"/>' +
+      '<rect x="92.5" y="138" width="7" height="11" rx="2" fill="#fff" stroke="#c9ced8" stroke-width="1"/>' +
+      '<rect x="100.5" y="138" width="7" height="11" rx="2" fill="#fff" stroke="#c9ced8" stroke-width="1"/>' +
+      '<path d="M62 126L20 116M62 133L18 135M138 126L180 116M138 133L182 135" stroke="#6c7587" stroke-width="2.5" stroke-linecap="round"/>' +
+      extra + '</svg>';
+  }
+
+  // ---------- Отрисовка: Профиль ----------
+  var lastStageShown = -1;
+  function renderProfile() {
+    checkFeedDay();
+    var idx = stageIndex();
+    var st = STAGES[idx];
+    var next = STAGES[idx + 1];
+    $('profStage').textContent = st.name;
+    $('profLvl').textContent = 'Ур. ' + (idx + 1);
+
+    var r = $('profRat');
+    r.innerHTML = ratSvg(idx, !S.feed.satiated);
+    r.classList.toggle('sad', !S.feed.satiated);
+    if (lastStageShown >= 0 && idx > lastStageShown) {
+      r.classList.remove('evo'); void r.offsetWidth; r.classList.add('evo');
+      sndEvo();
+    }
+    lastStageShown = idx;
+
+    var moodEl = $('profMood');
+    if (S.feed.satiated) { moodEl.textContent = '😋 Сыта'; moodEl.className = 'mood ok'; }
+    else { moodEl.textContent = '😿 Голодна — доход крысы приостановлен'; moodEl.className = 'mood bad'; }
+
+    var t = Math.min(S.feed.today, FEED_GOAL);
+    $('feedTxt').textContent = fmt(S.feed.today) + ' / ' + fmt(FEED_GOAL);
+    $('feedFill').style.width = (t / FEED_GOAL * 100).toFixed(1) + '%';
+    if (S.feed.today >= FEED_BONUS) {
+      $('feedHint').textContent = 'Двойная норма выполнена — бонус ×' + BUFF_MULT.toFixed(1) + ' к тапу действует 24 часа.';
+    } else if (S.feed.today >= FEED_GOAL) {
+      $('feedHint').textContent = 'Норма выполнена! Покорми ещё ' + fmt(FEED_BONUS - S.feed.today) + ' раз для бонуса ×' + BUFF_MULT.toFixed(1) + ' к тапу.';
+    } else {
+      $('feedHint').textContent = 'Осталось ' + fmt(FEED_GOAL - S.feed.today) + ' кормлений до дневной нормы.';
+    }
+
+    $('profIncome').textContent = '+' + fmt(stageIncome()) + '/ч';
+    $('profTaps').textContent = fmt(S.taps);
+    $('profEarned').textContent = fmt(S.earned);
+
+    if (next) {
+      $('nextCard').innerHTML = 'Следующая стадия: <b>' + next.name + '</b><br>' +
+        'Нужно дней сытости подряд: ' + fmt(next.need) + ' (сейчас подряд: ' + fmt(S.feed.streak) + ')<br>' +
+        'Доход на этой стадии: +' + fmt(next.perHour) + '/час';
+    } else {
+      $('nextCard').textContent = 'Это последняя стадия на старте. Новые стадии добавим позже.';
+    }
+  }
+
+  // ---------- Тап: защита от мультитач-спама ----------
   var tap = $('tap'), tiltT = 0, lastHaptic = 0;
+  var activePointers = {};
+  var activeCount = 0;
 
   function spawn(x, y, text) {
     var el = document.createElement('div');
@@ -321,61 +744,151 @@ nav button.on{color:var(--text);background:var(--card)}
   }
   function tilt(e) {
     var r = tap.getBoundingClientRect();
+    if (!r.width) return;
     var x = (e.clientX - (r.left + r.width / 2)) / (r.width / 2);
     var y = (e.clientY - (r.top + r.height / 2)) / (r.height / 2);
     tap.style.transform = 'perspective(600px) rotateX(' + (-y * 14).toFixed(1) + 'deg) rotateY(' + (x * 14).toFixed(1) + 'deg) scale(.96)';
     clearTimeout(tiltT);
     tiltT = setTimeout(function () { tap.style.transform = ''; }, 110);
   }
-  tap.addEventListener('pointerdown', function (e) {
-    e.preventDefault();
-    tilt(e);
-    if (S.energy < TAP_VALUE) return;
-    S.energy -= TAP_VALUE;
-    S.coins += TAP_VALUE;
-    S.earned += TAP_VALUE;
+  function doTap(e) {
+    if (S.energy < ENERGY_PER_TAP) return;
+    var v = tapValue();
+    S.energy -= ENERGY_PER_TAP;
+    S.coins += v;
+    S.earned += v;
+    S.taps += 1;
     dirty = true;
-    spawn(e.clientX, e.clientY, '+' + TAP_VALUE);
+    spawn(e.clientX, e.clientY, '+' + fmt(v));
+    sndTap();
     var now = Date.now();
     if (tg && tg.HapticFeedback && now - lastHaptic > 60) {
       lastHaptic = now;
       try { tg.HapticFeedback.impactOccurred('light'); } catch (er) {}
     }
     renderAll();
+  }
+  tap.addEventListener('pointerdown', function (e) {
+    e.preventDefault();
+    onFirstInteraction();
+    tilt(e);
+    // не больше MAX_FINGERS одновременных касаний засчитываются как клики
+    if (!activePointers[e.pointerId]) {
+      if (activeCount >= MAX_FINGERS) return;
+      activePointers[e.pointerId] = true;
+      activeCount++;
+    }
+    doTap(e);
   });
+  function releasePointer(e) {
+    if (activePointers[e.pointerId]) {
+      delete activePointers[e.pointerId];
+      activeCount = Math.max(0, activeCount - 1);
+    }
+  }
+  tap.addEventListener('pointerup', releasePointer);
+  tap.addEventListener('pointercancel', releasePointer);
+  tap.addEventListener('pointerleave', releasePointer);
 
-  // ---------- Улучшения ----------
+  // ---------- Улучшения: покупка ----------
   $('shop').addEventListener('click', function (e) {
+    onFirstInteraction();
     var btn = e.target.closest ? e.target.closest('.card') : null;
     if (!btn) return;
-    var u = UPGRADES.filter(function (x) { return x.id === btn.getAttribute('data-id'); })[0];
+    var u = findUpgrade(btn.getAttribute('data-id'));
     if (!u) return;
     var c = cost(u);
     if (S.coins < c) {
+      sndErr();
       try { if (tg && tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('error'); } catch (er) {}
       return;
     }
     S.coins -= c;
-    S.lv[u.id] = (S.lv[u.id] || 0) + 1;
+    S.lv[u.id] = lvl(u) + 1;
+    if (u.fx === 'maxEnergy') S.energy += u.v; // новый запас сразу наполняется
     dirty = true;
+    sndBuy();
     try { if (tg && tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success'); } catch (er) {}
     renderAll(); renderShop(); save();
   });
 
+  var segBtns = document.querySelectorAll('#seg button');
+  Array.prototype.forEach.call(segBtns, function (b) {
+    b.addEventListener('click', function () {
+      onFirstInteraction(); sndTab();
+      shopCat = b.getAttribute('data-cat');
+      Array.prototype.forEach.call(segBtns, function (x) { x.classList.toggle('on', x === b); });
+      renderShop();
+      $('shop').scrollTop = 0;
+    });
+  });
+
+  // ---------- Кормление ----------
+  $('feedBtn').addEventListener('click', function () {
+    onFirstInteraction();
+    checkFeedDay();
+    S.feed.today += 1;
+    var justFull = S.feed.today === FEED_GOAL;
+    var justBonus = S.feed.today === FEED_BONUS;
+    if (S.feed.today >= FEED_GOAL) S.feed.satiated = true;
+    if (justBonus && !S.feed.bonusGiven) {
+      S.feed.bonusGiven = true;
+      S.feed.buffUntil = Date.now() + BUFF_HOURS * 3600000;
+    }
+    dirty = true;
+
+    var r = $('profRat');
+    r.classList.remove('bounce'); void r.offsetWidth; r.classList.add('bounce');
+    if (justBonus) sndBuff(); else if (justFull) sndDone(); else sndFeed();
+    try { if (tg && tg.HapticFeedback) tg.HapticFeedback.impactOccurred('soft'); } catch (er) {}
+
+    renderProfile(); renderAll(); save();
+  });
+
+  // ---------- Настройки ----------
+  var soundBtn = $('toggleSound'), musicBtn = $('toggleMusic');
+  function renderSettings() {
+    soundBtn.textContent = soundOn ? 'Вкл' : 'Выкл';
+    soundBtn.classList.toggle('on', soundOn);
+    musicBtn.textContent = musicOn ? 'Вкл' : 'Выкл';
+    musicBtn.classList.toggle('on', musicOn);
+  }
+  soundBtn.addEventListener('click', function () {
+    soundOn = !soundOn;
+    try { localStorage.setItem('ratcombat_sound', soundOn ? '1' : '0'); } catch (e) {}
+    renderSettings();
+    if (soundOn) sndTab();
+  });
+  musicBtn.addEventListener('click', function () {
+    musicOn = !musicOn;
+    try { localStorage.setItem('ratcombat_music', musicOn ? '1' : '0'); } catch (e) {}
+    renderSettings();
+    if (musicOn) { onFirstInteraction(); startMusic(); } else { stopMusic(); }
+  });
+
   // ---------- Вкладки ----------
+  var TAB_TITLES = {
+    profile: '🪪 Профиль', play: '🐀 Rat Combat', shop: '🧀 Улучшения',
+    friends: '👥 Друзья', tasks: '📋 Задания', settings: '⚙️ Настройки'
+  };
   var tabs = document.querySelectorAll('nav button');
   Array.prototype.forEach.call(tabs, function (b) {
     b.addEventListener('click', function () {
+      onFirstInteraction(); sndTab();
+      var name = b.getAttribute('data-s');
       Array.prototype.forEach.call(tabs, function (x) { x.classList.toggle('on', x === b); });
-      ['play', 'shop', 'friends', 'tasks'].forEach(function (n) {
-        $('s-' + n).classList.toggle('on', n === b.getAttribute('data-s'));
+      ['profile', 'play', 'shop', 'friends', 'tasks', 'settings'].forEach(function (n) {
+        $('s-' + n).classList.toggle('on', n === name);
       });
-      if (b.getAttribute('data-s') === 'shop') { renderShop(); }
+      $('who').textContent = TAB_TITLES[name] || '🐀 Rat Combat';
+      if (name === 'shop') renderShop();
+      if (name === 'profile') renderProfile();
     });
   });
 
   // ---------- Друзья ----------
   $('invite').addEventListener('click', function () {
+    onFirstInteraction();
     var link = 'https://t.me/' + BOT;
     var text = 'Залетай в Rat Combat: тапай крысу и зарабатывай RatCoin!';
     var url = 'https://t.me/share/url?url=' + encodeURIComponent(link) + '&text=' + encodeURIComponent(text);
@@ -384,21 +897,24 @@ nav button.on{color:var(--text);background:var(--card)}
 
   // ---------- Запуск ----------
   var user = tg && tg.initDataUnsafe && tg.initDataUnsafe.user;
-  if (user && user.first_name) $('who').textContent = '🐀 ' + user.first_name;
 
   loadLocal();
   renderAll();
   renderShop();
+  renderProfile();
+  renderSettings();
   loadCloud();
 
-  // Раз в секунду: пассивный доход и восстановление энергии
+  // Раз в секунду: пассивный доход, восстановление энергии, смена дня, обратный отсчёт бонуса
   setInterval(function () {
+    checkFeedDay();
     var gain = profit() / 3600;
     S.coins += gain; S.earned += gain;
-    S.energy = Math.min(MAX_ENERGY, S.energy + REGEN);
+    S.energy = Math.min(maxEnergy(), S.energy + regen());
     if (gain > 0) dirty = true;
     renderAll();
     if ($('s-shop').classList.contains('on')) updateShop();
+    if ($('s-profile').classList.contains('on')) renderProfile();
   }, 1000);
 
   // Сохранение каждые 3 секунды, если что-то менялось, и при сворачивании
