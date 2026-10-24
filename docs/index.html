@@ -144,6 +144,12 @@ body{
   font:inherit;font-weight:700;cursor:pointer;white-space:nowrap;transition:background-color .2s,color .2s,transform .12s}
 .toggle:active{transform:scale(.95)}
 .toggle.on{background:linear-gradient(90deg,#35d07f,#2fae6c);border-color:transparent;color:#06250f}
+.volSlider{-webkit-appearance:none;appearance:none;width:100%;height:6px;border-radius:6px;
+  background:linear-gradient(90deg,var(--accent) 0%,var(--accent) var(--val,80%),#242850 var(--val,80%),#242850 100%);
+  outline:none}
+.volSlider::-webkit-slider-thumb{-webkit-appearance:none;width:18px;height:18px;border-radius:50%;
+  background:#fff;border:2px solid var(--accent);cursor:pointer;box-shadow:0 2px 6px rgba(0,0,0,.4)}
+.volSlider::-moz-range-thumb{width:18px;height:18px;border-radius:50%;background:#fff;border:2px solid var(--accent);cursor:pointer}
 
 /* TUTORIAL */
 .tutOverlay{position:fixed;inset:0;z-index:100;background:rgba(6,7,16,.78);backdrop-filter:blur(2px);
@@ -163,6 +169,13 @@ body{
 .tutSkip{background:none;border:1px solid var(--line);color:var(--muted);border-radius:12px;padding:12px 14px;
   font:inherit;font-size:14px;cursor:pointer;flex:none;transition:background-color .2s}
 .tutNext{flex:1}
+
+/* TOAST */
+.toast{position:fixed;left:50%;top:14px;transform:translate(-50%,-30px);z-index:120;
+  background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px 18px;
+  font-size:14px;font-weight:700;text-align:center;max-width:86vw;box-shadow:0 10px 26px rgba(0,0,0,.4);
+  opacity:0;pointer-events:none;transition:opacity .25s ease,transform .25s ease}
+.toast.on{opacity:1;transform:translate(-50%,0)}
 
 /* NAV */
 nav{display:flex;gap:4px;padding:8px 8px calc(8px + env(safe-area-inset-bottom));background:#111227;border-top:1px solid var(--line)}
@@ -292,13 +305,19 @@ nav button.on{color:var(--text);background:var(--card)}
     <!-- НАСТРОЙКИ -->
     <section class="screen" id="s-settings">
       <div class="h1">Настройки</div>
-      <div class="setRow">
-        <div><div class="nm">🔔 Звуки эффектов</div><div class="ds">Тапы, покупки, вкладки, кормление</div></div>
-        <button class="toggle" id="toggleSound">Вкл</button>
+      <div class="setRow" style="flex-direction:column;align-items:stretch;gap:8px">
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:10px">
+          <div><div class="nm">🔔 Звуки эффектов</div><div class="ds">Тапы, покупки, вкладки, кормление</div></div>
+          <button class="toggle" id="toggleSound">Вкл</button>
+        </div>
+        <input type="range" class="volSlider" id="sfxVolume" min="0" max="100" value="80">
       </div>
-      <div class="setRow">
-        <div><div class="nm">🎵 Фоновая музыка</div><div class="ds">Спокойная мелодия во время игры</div></div>
-        <button class="toggle" id="toggleMusic">Выкл</button>
+      <div class="setRow" style="flex-direction:column;align-items:stretch;gap:8px">
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:10px">
+          <div><div class="nm">🎵 Фоновая музыка</div><div class="ds">Спокойная мелодия во время игры</div></div>
+          <button class="toggle" id="toggleMusic">Выкл</button>
+        </div>
+        <input type="range" class="volSlider" id="musicVolume" min="0" max="100" value="75">
       </div>
       <p class="hint">Музыка запускается после первого нажатия где-либо в игре — так требуют правила Telegram и браузеров.</p>
     </section>
@@ -316,6 +335,7 @@ nav button.on{color:var(--text);background:var(--card)}
   <div class="tutOverlay" id="tutOverlay">
     <div class="tutCard" id="tutCard"></div>
   </div>
+  <div class="toast" id="toast"></div>
 </div>
 
 <script>
@@ -419,6 +439,11 @@ nav button.on{color:var(--text);background:var(--card)}
   try { soundOn = localStorage.getItem('ratcombat_sound') !== '0'; } catch (e) {}
   try { musicOn = localStorage.getItem('ratcombat_music') === '1'; } catch (e) {}
 
+  // Громкость 0..1, по умолчанию погромче, чем раньше
+  var sfxVol = 0.8, musicVol = 0.75;
+  try { var sv = localStorage.getItem('ratcombat_sfxvol'); if (sv !== null) sfxVol = Math.min(1, Math.max(0, parseInt(sv, 10) / 100)); } catch (e) {}
+  try { var mv = localStorage.getItem('ratcombat_musicvol'); if (mv !== null) musicVol = Math.min(1, Math.max(0, parseInt(mv, 10) / 100)); } catch (e) {}
+
   var actx = null;
   function ctx() {
     if (!actx) {
@@ -427,13 +452,13 @@ nav button.on{color:var(--text);background:var(--card)}
     return actx;
   }
   function beep(freq, dur, type, vol) {
-    if (!soundOn) return;
+    if (!soundOn || sfxVol <= 0) return;
     var c = ctx();
     if (!c) return;
     try {
       var o = c.createOscillator(), g = c.createGain();
       o.type = type || 'sine'; o.frequency.value = freq;
-      g.gain.value = vol || 0.05;
+      g.gain.value = (vol || 0.09) * sfxVol;
       o.connect(g); g.connect(c.destination);
       o.start();
       g.gain.exponentialRampToValueAtTime(0.0001, c.currentTime + dur);
@@ -445,36 +470,37 @@ nav button.on{color:var(--text);background:var(--card)}
     var now = Date.now();
     if (now - lastTapSnd < 55) return; // чтобы частые тапы не превращались в кашу
     lastTapSnd = now;
-    beep(300 + Math.random() * 40, 0.05, 'square', 0.035);
+    beep(300 + Math.random() * 40, 0.05, 'square', 0.07);
   }
-  function sndTab() { beep(520, 0.05, 'triangle', 0.04); }
-  function sndBuy() { beep(700, 0.08, 'sine', 0.05); setTimeout(function () { beep(980, 0.1, 'sine', 0.045); }, 70); }
-  function sndErr() { beep(160, 0.12, 'sawtooth', 0.05); }
-  function sndFeed() { beep(420, 0.06, 'triangle', 0.04); }
-  function sndDone() { beep(660, 0.12, 'sine', 0.05); setTimeout(function () { beep(880, 0.16, 'sine', 0.05); }, 110); }
+  function sndTab() { beep(520, 0.05, 'triangle', 0.08); }
+  function sndBuy() { beep(700, 0.08, 'sine', 0.09); setTimeout(function () { beep(980, 0.1, 'sine', 0.08); }, 70); }
+  function sndErr() { beep(160, 0.12, 'sawtooth', 0.09); }
+  function sndFeed() { beep(420, 0.06, 'triangle', 0.08); }
+  function sndDone() { beep(660, 0.12, 'sine', 0.09); setTimeout(function () { beep(880, 0.16, 'sine', 0.09); }, 110); }
   function sndEvo() {
-    beep(520, 0.1, 'sine', 0.05);
-    setTimeout(function () { beep(780, 0.12, 'sine', 0.05); }, 90);
-    setTimeout(function () { beep(1040, 0.2, 'sine', 0.05); }, 180);
+    beep(520, 0.1, 'sine', 0.09);
+    setTimeout(function () { beep(780, 0.12, 'sine', 0.09); }, 90);
+    setTimeout(function () { beep(1040, 0.2, 'sine', 0.09); }, 180);
   }
   function sndBuff() {
-    beep(600, 0.1, 'sine', 0.05);
-    setTimeout(function () { beep(900, 0.1, 'sine', 0.05); }, 90);
-    setTimeout(function () { beep(1200, 0.16, 'sine', 0.05); }, 180);
+    beep(600, 0.1, 'sine', 0.09);
+    setTimeout(function () { beep(900, 0.1, 'sine', 0.09); }, 90);
+    setTimeout(function () { beep(1200, 0.16, 'sine', 0.09); }, 180);
   }
 
   // Простая процедурная фоновая музыка (без внешних файлов): тихий плавающий пэд + редкие ноты.
   var musicNodes = null, musicTimer = null;
   var SCALE = [261.63, 293.66, 329.63, 392.0, 440.0, 523.25]; // до-мажор, приятный звукоряд
+  var MUSIC_MASTER_TARGET = 0.09, MUSIC_NOTE_TARGET = 0.1;
   function startMusic() {
-    if (musicNodes || !musicOn) return;
+    if (musicNodes || !musicOn || musicVol <= 0) return;
     var c = ctx();
     if (!c) return;
     try {
       var master = c.createGain();
       master.gain.value = 0.0001;
       master.connect(c.destination);
-      master.gain.linearRampToValueAtTime(0.05, c.currentTime + 2);
+      master.gain.linearRampToValueAtTime(MUSIC_MASTER_TARGET * musicVol, c.currentTime + 2);
 
       var pad = [196.0, 246.94, 329.63]; // тихий фоновый аккорд
       var osc = pad.map(function (f) {
@@ -492,7 +518,7 @@ nav button.on{color:var(--text);background:var(--card)}
         o.type = 'sine'; o.frequency.value = f; g.gain.value = 0.0001;
         o.connect(g); g.connect(master);
         o.start();
-        g.gain.linearRampToValueAtTime(0.06, c.currentTime + 0.4);
+        g.gain.linearRampToValueAtTime(MUSIC_NOTE_TARGET * musicVol, c.currentTime + 0.4);
         g.gain.exponentialRampToValueAtTime(0.0001, c.currentTime + 2.2);
         o.stop(c.currentTime + 2.3);
       }, 1800);
@@ -510,6 +536,17 @@ nav button.on{color:var(--text);background:var(--card)}
       } catch (e) {}
       musicNodes = null;
     }
+  }
+  // Живое изменение громкости музыки, пока она играет
+  function applyMusicVolumeLive() {
+    if (!musicNodes) return;
+    try {
+      var c = ctx();
+      if (!c) return;
+      musicNodes.master.gain.cancelScheduledValues(c.currentTime);
+      musicNodes.master.gain.linearRampToValueAtTime(MUSIC_MASTER_TARGET * musicVol, c.currentTime + 0.3);
+      if (musicVol <= 0) stopMusic();
+    } catch (e) {}
   }
   var userInteracted = false;
   function onFirstInteraction() {
@@ -782,9 +819,15 @@ nav button.on{color:var(--text);background:var(--card)}
       moodEl.textContent = '😿 Голодна — доход крысы приостановлен'; moodEl.className = 'mood bad';
     }
 
-    var t = Math.min(S.feed.today, FEED_GOAL);
-    $('feedTxt').textContent = fmt(S.feed.today) + ' / ' + fmt(FEED_GOAL);
-    $('feedFill').style.width = (t / FEED_GOAL * 100).toFixed(1) + '%';
+    // До дневной нормы бар идёт 0->200, после нормы продолжает расти уже 200->1000 (до бонуса)
+    if (S.feed.today < FEED_GOAL) {
+      $('feedTxt').textContent = fmt(S.feed.today) + ' / ' + fmt(FEED_GOAL);
+      $('feedFill').style.width = (S.feed.today / FEED_GOAL * 100).toFixed(1) + '%';
+    } else {
+      var t2 = Math.min(S.feed.today, FEED_BONUS);
+      $('feedTxt').textContent = fmt(t2) + ' / ' + fmt(FEED_BONUS);
+      $('feedFill').style.width = (t2 / FEED_BONUS * 100).toFixed(1) + '%';
+    }
     var hint = '';
     if (!S.feed.satiated) {
       hint += '⚠️ Пропущено дней подряд: ' + fmt(S.feed.missStreak) + '. ';
@@ -813,12 +856,20 @@ nav button.on{color:var(--text);background:var(--card)}
     }
   }
 
-  // ---------- Тап: защита от мультитач-спама и автокликера ----------
+  // ---------- Всплывающее уведомление ----------
+  var toastT = null;
+  function showToast(text) {
+    var el = $('toast');
+    el.textContent = text;
+    el.classList.add('on');
+    clearTimeout(toastT);
+    toastT = setTimeout(function () { el.classList.remove('on'); }, 2600);
+  }
+
+  // ---------- Тап: защита от мультитач-спама ----------
   var tap = $('tap'), tiltT = 0, lastHaptic = 0;
   var activePointers = {};
   var activeCount = 0;
-  var TAP_MIN_INTERVAL = 250; // мс: минимальный интервал между засчитанными тапами по кнопке
-  var lastTapProcessed = 0;
 
   function spawn(x, y, text) {
     var el = document.createElement('div');
@@ -938,7 +989,15 @@ nav button.on{color:var(--text);background:var(--card)}
 
     var r = $('profRat');
     r.classList.remove('bounce'); void r.offsetWidth; r.classList.add('bounce');
-    if (justBonus) sndBuff(); else if (justFull) sndDone(); else sndFeed();
+    if (justBonus) {
+      sndBuff();
+      showToast('🔥 Бонус ×' + BUFF_MULT.toFixed(1) + ' к тапу на 24 часа!');
+    } else if (justFull) {
+      sndDone();
+      showToast('🎉 Дневная норма выполнена! Крыса сыта.');
+    } else {
+      sndFeed();
+    }
     try { if (tg && tg.HapticFeedback) tg.HapticFeedback.impactOccurred('soft'); } catch (er) {}
 
     renderProfile(); renderAll(); save();
@@ -946,11 +1005,16 @@ nav button.on{color:var(--text);background:var(--card)}
 
   // ---------- Настройки ----------
   var soundBtn = $('toggleSound'), musicBtn = $('toggleMusic');
+  var sfxSlider = $('sfxVolume'), musicSlider = $('musicVolume');
   function renderSettings() {
     soundBtn.textContent = soundOn ? 'Вкл' : 'Выкл';
     soundBtn.classList.toggle('on', soundOn);
     musicBtn.textContent = musicOn ? 'Вкл' : 'Выкл';
     musicBtn.classList.toggle('on', musicOn);
+    sfxSlider.value = Math.round(sfxVol * 100);
+    sfxSlider.style.setProperty('--val', sfxSlider.value + '%');
+    musicSlider.value = Math.round(musicVol * 100);
+    musicSlider.style.setProperty('--val', musicSlider.value + '%');
   }
   soundBtn.addEventListener('click', function () {
     soundOn = !soundOn;
@@ -963,6 +1027,19 @@ nav button.on{color:var(--text);background:var(--card)}
     try { localStorage.setItem('ratcombat_music', musicOn ? '1' : '0'); } catch (e) {}
     renderSettings();
     if (musicOn) { onFirstInteraction(); startMusic(); } else { stopMusic(); }
+  });
+  sfxSlider.addEventListener('input', function () {
+    sfxVol = Math.min(1, Math.max(0, parseInt(sfxSlider.value, 10) / 100));
+    sfxSlider.style.setProperty('--val', sfxSlider.value + '%');
+    try { localStorage.setItem('ratcombat_sfxvol', sfxSlider.value); } catch (e) {}
+  });
+  sfxSlider.addEventListener('change', function () { if (soundOn) sndTab(); });
+  musicSlider.addEventListener('input', function () {
+    musicVol = Math.min(1, Math.max(0, parseInt(musicSlider.value, 10) / 100));
+    musicSlider.style.setProperty('--val', musicSlider.value + '%');
+    try { localStorage.setItem('ratcombat_musicvol', musicSlider.value); } catch (e) {}
+    if (musicOn && !musicNodes && musicVol > 0) { onFirstInteraction(); startMusic(); }
+    else applyMusicVolumeLive();
   });
 
   // ---------- Вкладки ----------
