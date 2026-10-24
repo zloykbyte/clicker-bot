@@ -31,8 +31,12 @@ body{
   display:flex;align-items:center;gap:6px;white-space:nowrap}
 .pill b{color:var(--green)}
 .screens{flex:1;min-height:0;position:relative}
-.screen{position:absolute;inset:0;display:none;flex-direction:column;padding:0 16px}
-.screen.on{display:flex}
+.screen{position:absolute;inset:0;display:flex;flex-direction:column;padding:0 16px;
+  opacity:0;transform:translateY(10px);pointer-events:none;transition:opacity .22s ease,transform .22s ease}
+.screen.on{opacity:1;transform:translateY(0);pointer-events:auto}
+.helpBtn{background:var(--card);border:1px solid var(--line);color:var(--muted);border-radius:10px;
+  width:30px;height:30px;font-size:15px;cursor:pointer;flex:none;transition:background-color .2s,color .2s}
+.helpBtn:active{transform:scale(.92)}
 
 /* PLAY */
 .stats{display:flex;gap:8px;margin:6px 0 10px}
@@ -44,7 +48,9 @@ body{
 #lgFill{background:linear-gradient(90deg,#7c5cff,#c45cff)}
 #enFill{background:linear-gradient(90deg,#ffb12a,#ffe066)}
 .balance{display:flex;align-items:center;justify-content:center;gap:10px;margin:10px 0 2px;
-  font-size:44px;font-weight:800;letter-spacing:-.5px}
+  font-size:44px;font-weight:800;letter-spacing:-.5px;transition:transform .15s ease}
+.balance.pulse{animation:coinPulse .22s ease}
+@keyframes coinPulse{0%{transform:scale(1)}45%{transform:scale(1.08)}100%{transform:scale(1)}}
 .coin{width:1em;height:1em;flex:none}
 .coin.sm{width:16px;height:16px;vertical-align:-3px;margin-right:4px}
 .sub{text-align:center;color:var(--muted);font-size:13px}
@@ -53,7 +59,9 @@ body{
   background:radial-gradient(circle at 35% 28%,#5a4cd0 0%,#2e2878 55%,#181642 100%);
   box-shadow:0 0 0 7px #2f2b7c,0 0 0 13px #3d37a3,0 18px 55px rgba(124,92,255,.5),inset 0 -10px 30px rgba(0,0,0,.4);
   touch-action:none;cursor:pointer;transition:transform .09s ease-out;will-change:transform}
-.tap svg{width:80%;height:80%;pointer-events:none;filter:drop-shadow(0 6px 10px rgba(0,0,0,.45))}
+.tap svg{width:80%;height:80%;pointer-events:none;filter:drop-shadow(0 6px 10px rgba(0,0,0,.45));
+  animation:idleBreath 2.6s ease-in-out infinite}
+@keyframes idleBreath{0%,100%{transform:scale(1)}50%{transform:scale(1.035)}}
 .energy{padding:6px 0 12px}
 .energy .row{display:flex;justify-content:space-between;font-size:13px;margin-bottom:6px}
 .float{position:fixed;pointer-events:none;font-weight:800;font-size:30px;color:#fff;z-index:50;
@@ -68,27 +76,32 @@ body{
 .hint{color:var(--muted);font-size:13px;margin:0 0 10px}
 .seg{display:flex;gap:6px;margin:0 0 10px}
 .seg button{flex:1;background:var(--card);border:1px solid var(--line);color:var(--muted);border-radius:12px;
-  padding:9px 4px;font:inherit;font-size:13px;font-weight:600;cursor:pointer}
+  padding:9px 4px;font:inherit;font-size:13px;font-weight:600;cursor:pointer;
+  transition:background-color .2s,color .2s,border-color .2s,transform .12s}
 .seg button.on{color:#fff;border-color:var(--accent);background:#2a2560}
+.seg button:active{transform:scale(.96)}
 .balmini{display:flex;align-items:center;gap:6px;font-weight:800;font-size:16px;margin:0 0 10px;color:var(--gold)}
 .grid{flex:1;min-height:0;display:grid;grid-template-columns:1fr 1fr;gap:10px;overflow-y:auto;align-content:start;
   padding-bottom:14px;-webkit-overflow-scrolling:touch}
 .card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:12px;text-align:left;color:var(--text);
-  font:inherit;cursor:pointer;display:flex;flex-direction:column;gap:3px}
+  font:inherit;cursor:pointer;display:flex;flex-direction:column;gap:3px;
+  transition:transform .15s ease,opacity .2s ease,border-color .2s}
 .card .ic{font-size:30px}
 .card .nm{font-weight:700;font-size:14px}
 .card .pf{font-size:12px;color:var(--green)}
 .card .lv{font-size:12px;color:var(--muted)}
 .card .pr{margin-top:6px;font-weight:700;font-size:14px;color:var(--gold);display:flex;align-items:center}
 .card.off{opacity:.45}
-.card:active{transform:scale(.97)}
+.card:active{transform:scale(.96)}
+.card.bought{animation:cardBought .3s ease}
+@keyframes cardBought{0%{transform:scale(1)}40%{transform:scale(1.04);border-color:var(--green)}100%{transform:scale(1)}}
 
 /* friends / tasks */
 .center{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:10px;padding:0 10px}
 .big{font-size:64px}
 .btn{background:linear-gradient(90deg,#7c5cff,#a05cff);color:#fff;border:0;border-radius:14px;padding:14px 22px;
-  font:inherit;font-weight:700;font-size:16px;cursor:pointer}
-.btn:active{transform:scale(.97)}
+  font:inherit;font-weight:700;font-size:16px;cursor:pointer;transition:transform .15s ease,filter .2s}
+.btn:active{transform:scale(.96)}
 
 /* PROFILE */
 #s-profile{overflow-y:auto;padding-bottom:16px;-webkit-overflow-scrolling:touch}
@@ -98,8 +111,11 @@ body{
 .profBadge{background:#2a2560;color:#fff;border-radius:10px;padding:3px 9px;font-size:12px;font-weight:700;white-space:nowrap}
 .profRatWrap{display:flex;flex-direction:column;align-items:center;gap:6px;padding:6px 0 2px}
 .profRat{width:min(44vw,180px);aspect-ratio:1;display:flex;align-items:center;justify-content:center}
-.profRat svg{width:100%;height:100%;filter:drop-shadow(0 8px 16px rgba(0,0,0,.4));transition:filter .2s}
-.profRat.sad svg{filter:grayscale(.4) brightness(.82)}
+.profRat svg{width:100%;height:100%;filter:drop-shadow(0 8px 16px rgba(0,0,0,.4));transition:filter .2s;
+  animation:idleBreath 3s ease-in-out infinite}
+.profRat img.bossImg{width:100%;height:100%;object-fit:cover;border-radius:50%;
+  box-shadow:0 10px 26px rgba(0,0,0,.5);transition:filter .2s;animation:idleBreath 3s ease-in-out infinite}
+.profRat.sad svg,.profRat.sad img.bossImg{filter:grayscale(.4) brightness(.82)}
 .profRat.bounce{animation:bounce .35s ease}
 @keyframes bounce{0%{transform:scale(1)}45%{transform:scale(1.1)}100%{transform:scale(1)}}
 .profRat.evo{animation:evo .7s ease}
@@ -125,13 +141,35 @@ body{
 .setRow .nm{font-weight:700;font-size:14px}
 .setRow .ds{font-size:12px;color:var(--muted);margin-top:2px}
 .toggle{background:#242850;border:1px solid var(--line);color:var(--text);border-radius:10px;padding:8px 16px;
-  font:inherit;font-weight:700;cursor:pointer;white-space:nowrap}
+  font:inherit;font-weight:700;cursor:pointer;white-space:nowrap;transition:background-color .2s,color .2s,transform .12s}
+.toggle:active{transform:scale(.95)}
 .toggle.on{background:linear-gradient(90deg,#35d07f,#2fae6c);border-color:transparent;color:#06250f}
+
+/* TUTORIAL */
+.tutOverlay{position:fixed;inset:0;z-index:100;background:rgba(6,7,16,.78);backdrop-filter:blur(2px);
+  display:flex;align-items:center;justify-content:center;padding:20px;opacity:0;pointer-events:none;transition:opacity .25s ease}
+.tutOverlay.on{opacity:1;pointer-events:auto}
+.tutCard{background:var(--card);border:1px solid var(--line);border-radius:20px;padding:20px;max-width:380px;width:100%;
+  max-height:86vh;overflow-y:auto;transform:scale(.92) translateY(10px);transition:transform .25s ease;text-align:center}
+.tutOverlay.on .tutCard{transform:scale(1) translateY(0)}
+.tutImg{width:100%;max-width:220px;border-radius:16px;margin:0 auto 12px;display:block;box-shadow:0 10px 26px rgba(0,0,0,.4)}
+.tutEmoji{font-size:48px;margin-bottom:8px}
+.tutTitle{font-size:18px;font-weight:800;margin-bottom:8px}
+.tutText{font-size:14px;color:var(--muted);line-height:1.5;margin-bottom:16px}
+.tutDots{display:flex;justify-content:center;gap:6px;margin-bottom:14px}
+.tutDots i{width:7px;height:7px;border-radius:50%;background:var(--line);transition:background-color .2s,transform .2s}
+.tutDots i.on{background:var(--accent);transform:scale(1.3)}
+.tutRow{display:flex;gap:8px}
+.tutSkip{background:none;border:1px solid var(--line);color:var(--muted);border-radius:12px;padding:12px 14px;
+  font:inherit;font-size:14px;cursor:pointer;flex:none;transition:background-color .2s}
+.tutNext{flex:1}
 
 /* NAV */
 nav{display:flex;gap:4px;padding:8px 8px calc(8px + env(safe-area-inset-bottom));background:#111227;border-top:1px solid var(--line)}
 nav button{flex:1;background:none;border:0;color:var(--muted);font:inherit;font-size:10.5px;padding:6px 0;border-radius:12px;
-  display:flex;flex-direction:column;align-items:center;gap:2px;cursor:pointer}
+  display:flex;flex-direction:column;align-items:center;gap:2px;cursor:pointer;
+  transition:background-color .2s,color .2s,transform .12s}
+nav button:active{transform:scale(.93)}
 nav button span{font-size:19px}
 nav button.on{color:var(--text);background:var(--card)}
 </style>
@@ -149,6 +187,7 @@ nav button.on{color:var(--text);background:var(--card)}
   <div class="top">
     <div class="who" id="who">🐀 Rat Combat</div>
     <div class="pill">Доход в час <b id="pph">+0</b></div>
+    <button class="helpBtn" id="helpBtn" aria-label="Обучение">❔</button>
   </div>
 
   <div class="screens">
@@ -172,10 +211,11 @@ nav button.on{color:var(--text);background:var(--card)}
         </div>
       </div>
       <div class="grid3">
-        <div class="statcard"><div class="sc-k">Доход крысы</div><div class="sc-v" id="profIncome">+0/ч</div></div>
+        <div class="statcard"><div class="sc-k">Доход крысы</div><div class="sc-v" id="profIncome">+0/мин</div></div>
         <div class="statcard"><div class="sc-k">Всего кликов</div><div class="sc-v" id="profTaps">0</div></div>
         <div class="statcard"><div class="sc-k">Заработано всего</div><div class="sc-v" id="profEarned">0</div></div>
       </div>
+      <p class="hint">🟢 Доход крысы начисляется только пока игра открыта, по минутам — в отличие от обычных улучшений, у которых доход в час идёт и офлайн (до 3 часов).</p>
       <div class="nextcard" id="nextCard"></div>
     </section>
 
@@ -272,6 +312,10 @@ nav button.on{color:var(--text);background:var(--card)}
     <button data-s="tasks"><span>📋</span>Задания</button>
     <button data-s="settings"><span>⚙️</span>Настр.</button>
   </nav>
+
+  <div class="tutOverlay" id="tutOverlay">
+    <div class="tutCard" id="tutCard"></div>
+  </div>
 </div>
 
 <script>
@@ -341,13 +385,16 @@ nav button.on{color:var(--text);background:var(--card)}
     { n: 'Алмазная крыса',    min: 75000,  mult: 1.75 },
     { n: 'Король крыс',       min: 250000, mult: 2.00 }
   ];
+  // Доход крысы считается в RatCoin в минуту и начисляется только пока игра открыта
+  // (без офлайн-накопления, в отличие от обычных улучшений из "Улучшения -> Доход").
   var STAGES = [
-    { name: 'Серая крыса',     need: 0,  perHour: 0 },
-    { name: 'Ухоженная крыса', need: 3,  perHour: 50 },
-    { name: 'Крыса-боец',      need: 10, perHour: 200 },
-    { name: 'Крыса-бандит',    need: 25, perHour: 800 },
-    { name: 'Крысиный босс',   need: 60, perHour: 3000 }
+    { name: 'Серая крыса',     need: 0,  perMinute: 0 },
+    { name: 'Ухоженная крыса', need: 3,  perMinute: 1 },
+    { name: 'Крыса-боец',      need: 10, perMinute: 4 },
+    { name: 'Крыса-бандит',    need: 25, perMinute: 14 },
+    { name: 'Крысиный босс',   need: 60, perMinute: 50 }
   ];
+  var HERO_IMG = 'assets/king-rat.jpg'; // фото главного героя игры (стадия "Крысиный босс")
 
   // ---------- Telegram ----------
   var tg = (window.Telegram && window.Telegram.WebApp) || null;
@@ -512,8 +559,10 @@ nav button.on{color:var(--text);background:var(--card)}
     for (var k = 0; k < STAGES.length; k++) if (S.feed.totalFedDays >= STAGES[k].need) i = k;
     return i;
   }
-  function stageIncome() { return S.feed.satiated ? STAGES[stageIndex()].perHour : 0; }
-  function profit() { return sum('perHour') + stageIncome(); }
+  // Доход обычных улучшений ("Доход" в "Улучшениях"): идёт каждый час, копится и офлайн (до 3 часов).
+  function profit() { return sum('perHour'); }
+  // Доход крысы: в минуту, только пока игра открыта — не входит в profit() и не копится офлайн.
+  function ratIncomePerMin() { return S.feed.satiated ? STAGES[stageIndex()].perMinute : 0; }
   function cost(u) { return Math.round(u.base * Math.pow(u.g, lvl(u))); }
 
   function effectText(u) {
@@ -664,6 +713,7 @@ nav button.on{color:var(--text);background:var(--card)}
     }).join('');
   }
   function findUpgrade(id) { return UPGRADES.filter(function (x) { return x.id === id; })[0]; }
+  function findCardEl(id) { return $('shop').querySelector('.card[data-id="' + id + '"]'); }
   function updateShop() {
     var cards = $('shop').children;
     for (var i = 0; i < cards.length; i++) {
@@ -711,7 +761,9 @@ nav button.on{color:var(--text);background:var(--card)}
     $('profLvl').textContent = 'Ур. ' + (idx + 1);
 
     var r = $('profRat');
-    r.innerHTML = ratSvg(idx, !S.feed.satiated);
+    r.innerHTML = idx === 4
+      ? '<img class="bossImg" src="' + HERO_IMG + '" alt="Король крыс">'
+      : ratSvg(idx, !S.feed.satiated);
     r.classList.toggle('sad', !S.feed.satiated);
     if (lastStageShown >= 0 && idx > lastStageShown) {
       r.classList.remove('evo'); void r.offsetWidth; r.classList.add('evo');
@@ -748,23 +800,25 @@ nav button.on{color:var(--text);background:var(--card)}
     }
     $('feedHint').textContent = hint;
 
-    $('profIncome').textContent = '+' + fmt(stageIncome()) + '/ч';
+    $('profIncome').textContent = '+' + fmt(ratIncomePerMin()) + '/мин';
     $('profTaps').textContent = fmt(S.taps);
     $('profEarned').textContent = fmt(S.earned);
 
     if (next) {
       $('nextCard').innerHTML = 'Следующая стадия: <b>' + next.name + '</b><br>' +
         'Нужно дней сытости подряд: ' + fmt(next.need) + ' (сейчас подряд: ' + fmt(S.feed.streak) + ')<br>' +
-        'Доход на этой стадии: +' + fmt(next.perHour) + '/час';
+        'Доход на этой стадии: +' + fmt(next.perMinute) + '/мин (пока игра открыта)';
     } else {
       $('nextCard').textContent = 'Это последняя стадия на старте. Новые стадии добавим позже.';
     }
   }
 
-  // ---------- Тап: защита от мультитач-спама ----------
+  // ---------- Тап: защита от мультитач-спама и автокликера ----------
   var tap = $('tap'), tiltT = 0, lastHaptic = 0;
   var activePointers = {};
   var activeCount = 0;
+  var TAP_MIN_INTERVAL = 250; // мс: минимальный интервал между засчитанными тапами по кнопке
+  var lastTapProcessed = 0;
 
   function spawn(x, y, text) {
     var el = document.createElement('div');
@@ -794,6 +848,8 @@ nav button.on{color:var(--text);background:var(--card)}
     dirty = true;
     spawn(e.clientX, e.clientY, '+' + fmt(v));
     sndTap();
+    var bal = $('bal');
+    bal.classList.remove('pulse'); void bal.offsetWidth; bal.classList.add('pulse');
     var now = Date.now();
     if (tg && tg.HapticFeedback && now - lastHaptic > 60) {
       lastHaptic = now;
@@ -811,6 +867,10 @@ nav button.on{color:var(--text);background:var(--card)}
       activePointers[e.pointerId] = true;
       activeCount++;
     }
+    // защита от автокликера: по этой кнопке засчитывается не чаще раза в TAP_MIN_INTERVAL
+    var now = Date.now();
+    if (now - lastTapProcessed < TAP_MIN_INTERVAL) return;
+    lastTapProcessed = now;
     doTap(e);
   });
   function releasePointer(e) {
@@ -843,6 +903,8 @@ nav button.on{color:var(--text);background:var(--card)}
     sndBuy();
     try { if (tg && tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success'); } catch (er) {}
     renderAll(); renderShop(); save();
+    var newCard = findCardEl(u.id);
+    if (newCard) newCard.classList.add('bought');
   });
 
   var segBtns = document.querySelectorAll('#seg button');
@@ -932,6 +994,54 @@ nav button.on{color:var(--text);background:var(--card)}
     if (tg && tg.openTelegramLink) tg.openTelegramLink(url); else window.open(url, '_blank');
   });
 
+  // ---------- Обучение (можно пропустить) ----------
+  var TUT_KEY = 'ratcombat_tutorial_v1';
+  var TUT_STEPS = [
+    { img: HERO_IMG, title: 'Добро пожаловать в Rat Combat!',
+      text: 'Это Король Крыс — легенда подземелий. Помоги своей крысе вырасти из серого новичка в такого же короля!' },
+    { emoji: '👆', title: 'Тапай и зарабатывай',
+      text: 'На экране «Играть» нажимай на крысу — каждый тап приносит RatCoin. На тапы тратится энергия, она сама восстанавливается.' },
+    { emoji: '🏆', title: 'Лиги — за клики',
+      text: 'Чем больше кликов ты сделал за всё время, тем выше лига. Каждая новая лига даёт постоянный множитель к силе тапа.' },
+    { emoji: '🧀', title: 'Улучшения',
+      text: 'В «Улучшениях» три раздела: сила тапа, энергия и доход в час — он идёт даже когда ты не в игре, до 3 часов.' },
+    { emoji: '🪪', title: 'Корми свою крысу',
+      text: 'В «Профиле» — отдельная кнопка «Покормить»: 200 кормлений в день держат крысу сытой. Сытая крыса приносит RatCoin каждую минуту, но только пока игра открыта.' },
+    { emoji: '😿', title: 'Не забывай кормить',
+      text: 'Пропустишь норму 2 дня подряд — крыса потеряет стадию эволюции. 3 и больше — упадёт ещё и максимум энергии. Покорми — и всё вернётся.' },
+    { emoji: '🔥', title: 'Бонус за старание',
+      text: '1000 кормлений за день (норма 200 + ещё 800) дают ×1.5 к силе тапа на 24 часа.' },
+    { emoji: '⚙️', title: 'Настройки',
+      text: 'Там можно в любой момент выключить звуки или фоновую музыку.' }
+  ];
+  var tutIdx = 0;
+  function renderTut() {
+    var s = TUT_STEPS[tutIdx];
+    var dots = TUT_STEPS.map(function (_, i) { return '<i class="' + (i === tutIdx ? 'on' : '') + '"></i>'; }).join('');
+    var media = s.img ? '<img class="tutImg" src="' + s.img + '" alt="">' : '<div class="tutEmoji">' + s.emoji + '</div>';
+    var last = tutIdx === TUT_STEPS.length - 1;
+    $('tutCard').innerHTML = media +
+      '<div class="tutTitle">' + s.title + '</div>' +
+      '<div class="tutText">' + s.text + '</div>' +
+      '<div class="tutDots">' + dots + '</div>' +
+      '<div class="tutRow">' +
+      (last ? '' : '<button class="tutSkip" id="tutSkipBtn">Пропустить</button>') +
+      '<button class="btn tutNext" id="tutNextBtn">' + (last ? 'Погнали! 🐀' : 'Далее') + '</button>' +
+      '</div>';
+    $('tutNextBtn').addEventListener('click', function () {
+      sndTab();
+      if (tutIdx < TUT_STEPS.length - 1) { tutIdx++; renderTut(); } else closeTut();
+    });
+    var skipBtn = $('tutSkipBtn');
+    if (skipBtn) skipBtn.addEventListener('click', function () { sndTab(); closeTut(); });
+  }
+  function openTut() { tutIdx = 0; renderTut(); $('tutOverlay').classList.add('on'); }
+  function closeTut() {
+    $('tutOverlay').classList.remove('on');
+    try { localStorage.setItem(TUT_KEY, '1'); } catch (e) {}
+  }
+  $('helpBtn').addEventListener('click', function () { onFirstInteraction(); openTut(); });
+
   // ---------- Запуск ----------
   var user = tg && tg.initDataUnsafe && tg.initDataUnsafe.user;
 
@@ -942,10 +1052,15 @@ nav button.on{color:var(--text);background:var(--card)}
   renderSettings();
   loadCloud();
 
-  // Раз в секунду: пассивный доход, восстановление энергии, смена дня, обратный отсчёт бонуса
+  var tutSeen = false;
+  try { tutSeen = localStorage.getItem(TUT_KEY) === '1'; } catch (e) {}
+  if (!tutSeen) openTut();
+
+  // Раз в секунду: пассивный доход улучшений (идёт и офлайн), доход крысы (только пока игра
+  // открыта — этот цикл и есть "онлайн"), восстановление энергии, смена дня, бонус.
   setInterval(function () {
     checkFeedDay();
-    var gain = profit() / 3600;
+    var gain = profit() / 3600 + ratIncomePerMin() / 60;
     S.coins += gain; S.earned += gain;
     S.energy = Math.min(maxEnergy(), S.energy + regen());
     if (gain > 0) dirty = true;
