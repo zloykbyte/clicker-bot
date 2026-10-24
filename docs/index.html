@@ -185,7 +185,7 @@ nav button.on{color:var(--text);background:var(--card)}
         <div class="pill">👆 <b id="tapVal">+1</b> за тап</div>
         <div class="pill">👆 Всего кликов: <b id="tapsVal">0</b></div>
       </div>
-      <div class="buffbar" id="buffbar">🔥 Бонус за кормление: ×1.1 к тапу — <span id="buffTime">24:00:00</span></div>
+      <div class="buffbar" id="buffbar">🔥 Бонус за кормление: <span id="buffMult">×1.5</span> к тапу — <span id="buffTime">24:00:00</span></div>
       <div class="league">
         <div class="row"><span>Лига: <b id="lgName">Серая крыса</b> <span id="lgMult"></span></span><span id="lgNext"></span></div>
         <div class="bar"><i id="lgFill"></i></div>
@@ -287,8 +287,8 @@ nav button.on{color:var(--text);background:var(--card)}
   var OFFLINE_CAP_H = 3;           // сколько часов дохода копится без игры
   var MAX_FINGERS = 2;             // максимум одновременных касаний, которые засчитываются
   var FEED_GOAL = 200;             // кликов кормления в день, чтобы крыса была сыта
-  var FEED_BONUS = 400;            // двойная норма: даёт временный бонус к тапу
-  var BUFF_MULT = 1.1;             // множитель тапа от бонуса кормления
+  var FEED_BONUS = 1000;           // норма (200) + ещё 800 кликов: даёт временный бонус к тапу
+  var BUFF_MULT = 1.5;             // множитель тапа от бонуса кормления
   var BUFF_HOURS = 24;             // на сколько часов действует бонус
   var KEY = 'ratcombat_v1';
 
@@ -624,6 +624,7 @@ nav button.on{color:var(--text);background:var(--card)}
     var bb = $('buffbar');
     if (buffActive()) {
       bb.classList.add('on');
+      $('buffMult').textContent = '×' + BUFF_MULT.toFixed(1);
       var left = S.feed.buffUntil - Date.now();
       var h = Math.floor(left / 3600000), m = Math.floor(left % 3600000 / 60000), s2 = Math.floor(left % 60000 / 1000);
       $('buffTime').textContent = (h < 10 ? '0' : '') + h + ':' + (m < 10 ? '0' : '') + m + ':' + (s2 < 10 ? '0' : '') + s2;
