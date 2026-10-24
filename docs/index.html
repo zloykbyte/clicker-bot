@@ -473,7 +473,10 @@ nav button.on{color:var(--text);background:var(--card)}
 
   // ---------- Состояние ----------
   function freshFeed() {
-    return { day: todayKey(), today: 0, satiated: true, totalFedDays: 0, streak: 0, buffUntil: 0, bonusGiven: false };
+    return {
+      day: todayKey(), today: 0, satiated: true, totalFedDays: 0, streak: 0,
+      buffUntil: 0, bonusGiven: false, missStreak: 0, weak: false
+    };
   }
   function fresh() {
     return { coins: 0, earned: 0, taps: 0, energy: BASE_MAX, lv: {}, ts: Date.now(), feed: freshFeed() };
@@ -499,7 +502,10 @@ nav button.on{color:var(--text);background:var(--card)}
     var mult = LEAGUES[leagueIndex()].mult * (buffActive() ? BUFF_MULT : 1);
     return Math.max(1, Math.round(base * mult));
   }
-  function maxEnergy() { return BASE_MAX + sum('maxEnergy'); }
+  function maxEnergy() {
+    var m = BASE_MAX + sum('maxEnergy');
+    return S.feed.weak ? Math.round(m * 0.5) : m;
+  }
   function regen() { return BASE_REGEN + sum('regen'); }
   function stageIndex() {
     var i = 0;
@@ -524,9 +530,19 @@ nav button.on{color:var(--text);background:var(--card)}
       S.feed.totalFedDays += 1;
       S.feed.streak += 1;
       S.feed.satiated = true;
+      S.feed.missStreak = 0;
+      S.feed.weak = false;
     } else {
       S.feed.streak = 0;
       S.feed.satiated = false;
+      S.feed.missStreak += 1;
+      // со 2-го пропущенного дня подряд крыса теряет одну стадию за каждый новый пропуск
+      if (S.feed.missStreak >= 2) {
+        var idx = stageIndex();
+        if (idx > 0) S.feed.totalFedDays = STAGES[idx - 1].need;
+      }
+      // с 3-го пропущенного дня подряд дополнительно падает максимум энергии
+      S.feed.weak = S.feed.missStreak >= 3;
     }
     S.feed.day = tk;
     S.feed.today = 0;
@@ -559,7 +575,9 @@ nav button.on{color:var(--text);background:var(--card)}
             totalFedDays: +o.feed.totalFedDays || 0,
             streak: +o.feed.streak || 0,
             buffUntil: +o.feed.buffUntil || 0,
-            bonusGiven: !!o.feed.bonusGiven
+            bonusGiven: !!o.feed.bonusGiven,
+            missStreak: +o.feed.missStreak || 0,
+            weak: !!o.feed.weak
           };
         }
         return s;
@@ -702,19 +720,33 @@ nav button.on{color:var(--text);background:var(--card)}
     lastStageShown = idx;
 
     var moodEl = $('profMood');
-    if (S.feed.satiated) { moodEl.textContent = '😋 Сыта'; moodEl.className = 'mood ok'; }
-    else { moodEl.textContent = '😿 Голодна — доход крысы приостановлен'; moodEl.className = 'mood bad'; }
+    if (S.feed.satiated) {
+      moodEl.textContent = '😋 Сыта'; moodEl.className = 'mood ok';
+    } else if (S.feed.missStreak >= 3) {
+      moodEl.textContent = '🥶 Истощена — энергия ×0.5, стадия падает каждый день'; moodEl.className = 'mood bad';
+    } else if (S.feed.missStreak >= 2) {
+      moodEl.textContent = '😿 Голодна 2+ дня — крыса уже потеряла стадию'; moodEl.className = 'mood bad';
+    } else {
+      moodEl.textContent = '😿 Голодна — доход крысы приостановлен'; moodEl.className = 'mood bad';
+    }
 
     var t = Math.min(S.feed.today, FEED_GOAL);
     $('feedTxt').textContent = fmt(S.feed.today) + ' / ' + fmt(FEED_GOAL);
     $('feedFill').style.width = (t / FEED_GOAL * 100).toFixed(1) + '%';
-    if (S.feed.today >= FEED_BONUS) {
-      $('feedHint').textContent = 'Двойная норма выполнена — бонус ×' + BUFF_MULT.toFixed(1) + ' к тапу действует 24 часа.';
-    } else if (S.feed.today >= FEED_GOAL) {
-      $('feedHint').textContent = 'Норма выполнена! Покорми ещё ' + fmt(FEED_BONUS - S.feed.today) + ' раз для бонуса ×' + BUFF_MULT.toFixed(1) + ' к тапу.';
-    } else {
-      $('feedHint').textContent = 'Осталось ' + fmt(FEED_GOAL - S.feed.today) + ' кормлений до дневной нормы.';
+    var hint = '';
+    if (!S.feed.satiated) {
+      hint += '⚠️ Пропущено дней подряд: ' + fmt(S.feed.missStreak) + '. ';
+      hint += S.feed.missStreak >= 2 ? 'Стадия уже снижена. ' : 'Ещё один пропуск — и крыса потеряет стадию. ';
+      if (S.feed.missStreak >= 3) hint += 'Энергия сейчас в 2 раза меньше обычной. ';
     }
+    if (S.feed.today >= FEED_BONUS) {
+      hint += 'Двойная норма выполнена — бонус ×' + BUFF_MULT.toFixed(1) + ' к тапу действует 24 часа.';
+    } else if (S.feed.today >= FEED_GOAL) {
+      hint += 'Норма выполнена! Покорми ещё ' + fmt(FEED_BONUS - S.feed.today) + ' раз для бонуса ×' + BUFF_MULT.toFixed(1) + ' к тапу.';
+    } else {
+      hint += 'Осталось ' + fmt(FEED_GOAL - S.feed.today) + ' кормлений до дневной нормы.';
+    }
+    $('feedHint').textContent = hint;
 
     $('profIncome').textContent = '+' + fmt(stageIncome()) + '/ч';
     $('profTaps').textContent = fmt(S.taps);
@@ -831,7 +863,11 @@ nav button.on{color:var(--text);background:var(--card)}
     S.feed.today += 1;
     var justFull = S.feed.today === FEED_GOAL;
     var justBonus = S.feed.today === FEED_BONUS;
-    if (S.feed.today >= FEED_GOAL) S.feed.satiated = true;
+    if (S.feed.today >= FEED_GOAL) {
+      S.feed.satiated = true;
+      S.feed.missStreak = 0;   // покормили сегодня — последствия голода сняты
+      S.feed.weak = false;
+    }
     if (justBonus && !S.feed.bonusGiven) {
       S.feed.bonusGiven = true;
       S.feed.buffUntil = Date.now() + BUFF_HOURS * 3600000;
