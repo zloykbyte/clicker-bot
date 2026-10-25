@@ -237,12 +237,10 @@ nav button.on span{transform:scale(1.15)}
           <button class="btn feedBtn" id="feedBtn">Покормить 🧀</button>
         </div>
       </div>
-      <div class="grid3">
-        <div class="statcard"><div class="sc-k">Доход крысы</div><div class="sc-v" id="profIncome">+0/мин</div></div>
+      <div class="grid2">
         <div class="statcard"><div class="sc-k">Всего кликов</div><div class="sc-v" id="profTaps">0</div></div>
         <div class="statcard"><div class="sc-k">Заработано всего</div><div class="sc-v" id="profEarned">0</div></div>
       </div>
-      <p class="hint">🟢 Доход крысы начисляется только пока игра открыта, по минутам — в отличие от обычных улучшений, у которых доход в час идёт и офлайн (до 3 часов).</p>
       <div class="nextcard" id="nextCard"></div>
     </section>
 
@@ -419,14 +417,12 @@ nav button.on span{transform:scale(1.15)}
     { n: 'Алмазная крыса',    min: 75000,  mult: 1.75 },
     { n: 'Король крыс',       min: 250000, mult: 2.00 }
   ];
-  // Доход крысы считается в RatCoin в минуту и начисляется только пока игра открыта
-  // (без офлайн-накопления, в отличие от обычных улучшений из "Улучшения -> Доход").
   var STAGES = [
-    { name: 'Серая крыса',     need: 0,  perMinute: 0 },
-    { name: 'Ухоженная крыса', need: 3,  perMinute: 1 },
-    { name: 'Крыса-боец',      need: 10, perMinute: 4 },
-    { name: 'Крыса-бандит',    need: 25, perMinute: 14 },
-    { name: 'Крысиный босс',   need: 60, perMinute: 50 }
+    { name: 'Серая крыса',     need: 0 },
+    { name: 'Ухоженная крыса', need: 3 },
+    { name: 'Крыса-боец',      need: 10 },
+    { name: 'Крыса-бандит',    need: 25 },
+    { name: 'Крысиный босс',   need: 60 }
   ];
   var HERO_IMG = 'assets/king-rat.jpg'; // фото главного героя игры (стадия "Крысиный босс")
 
@@ -620,8 +616,6 @@ nav button.on span{transform:scale(1.15)}
   }
   // Доход обычных улучшений ("Доход" в "Улучшениях"): идёт каждый час, копится и офлайн (до 3 часов).
   function profit() { return sum('perHour'); }
-  // Доход крысы: в минуту, только пока игра открыта — не входит в profit() и не копится офлайн.
-  function ratIncomePerMin() { return S.feed.satiated ? STAGES[stageIndex()].perMinute : 0; }
   function cost(u) { return Math.round(u.base * Math.pow(u.g, lvl(u))); }
 
   function effectText(u) {
@@ -838,7 +832,7 @@ nav button.on span{transform:scale(1.15)}
     } else if (S.feed.missStreak >= 2) {
       moodEl.textContent = '😿 Голодна 2+ дня — крыса уже потеряла стадию'; moodEl.className = 'mood bad';
     } else {
-      moodEl.textContent = '😿 Голодна — доход крысы приостановлен'; moodEl.className = 'mood bad';
+      moodEl.textContent = '😿 Голодна — покорми, чтобы не потерять стадию'; moodEl.className = 'mood bad';
     }
 
     // До дневной нормы бар идёт 0->200, после нормы продолжает расти уже 200->1000 (до бонуса)
@@ -865,14 +859,12 @@ nav button.on span{transform:scale(1.15)}
     }
     $('feedHint').textContent = hint;
 
-    setNum('profIncome', '+' + fmt(ratIncomePerMin()) + '/мин');
     setNum('profTaps', fmt(S.taps));
     setNum('profEarned', fmt(S.earned));
 
     if (next) {
       $('nextCard').innerHTML = 'Следующая стадия: <b>' + next.name + '</b><br>' +
-        'Нужно дней сытости подряд: ' + fmt(next.need) + ' (сейчас подряд: ' + fmt(S.feed.streak) + ')<br>' +
-        'Доход на этой стадии: +' + fmt(next.perMinute) + '/мин (пока игра открыта)';
+        'Нужно дней сытости подряд: ' + fmt(next.need) + ' (сейчас подряд: ' + fmt(S.feed.streak) + ')';
     } else {
       $('nextCard').textContent = 'Это последняя стадия на старте. Новые стадии добавим позже.';
     }
@@ -1102,7 +1094,7 @@ nav button.on span{transform:scale(1.15)}
     { emoji: '🧀', title: 'Улучшения',
       text: 'В «Улучшениях» три раздела: сила тапа, энергия и доход в час — он идёт даже когда ты не в игре, до 3 часов.' },
     { emoji: '🪪', title: 'Корми свою крысу',
-      text: 'В «Профиле» — отдельная кнопка «Покормить»: 200 кормлений в день держат крысу сытой. Сытая крыса приносит RatCoin каждую минуту, но только пока игра открыта.' },
+      text: 'В «Профиле» — отдельная кнопка «Покормить»: 200 кормлений в день держат крысу сытой и не дают ей потерять стадию.' },
     { emoji: '😿', title: 'Не забывай кормить',
       text: 'Пропустишь норму 2 дня подряд — крыса потеряет стадию эволюции. 3 и больше — упадёт ещё и максимум энергии. Покорми — и всё вернётся.' },
     { emoji: '🔥', title: 'Бонус за старание',
@@ -1152,11 +1144,10 @@ nav button.on span{transform:scale(1.15)}
   try { tutSeen = localStorage.getItem(TUT_KEY) === '1'; } catch (e) {}
   if (!tutSeen) openTut();
 
-  // Раз в секунду: пассивный доход улучшений (идёт и офлайн), доход крысы (только пока игра
-  // открыта — этот цикл и есть "онлайн"), восстановление энергии, смена дня, бонус.
+  // Раз в секунду: пассивный доход улучшений (идёт и офлайн), восстановление энергии, смена дня, бонус.
   setInterval(function () {
     checkFeedDay();
-    var gain = profit() / 3600 + ratIncomePerMin() / 60;
+    var gain = profit() / 3600;
     S.coins += gain; S.earned += gain;
     S.energy = Math.min(maxEnergy(), S.energy + regen());
     if (gain > 0) dirty = true;
