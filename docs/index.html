@@ -63,13 +63,20 @@ body{
 .tap{width:min(72vw,300px,38vh);aspect-ratio:1;border-radius:50%;display:flex;align-items:center;justify-content:center;
   background:radial-gradient(circle at 35% 28%,#5a4cd0 0%,#2e2878 55%,#181642 100%);
   box-shadow:0 0 0 7px #2f2b7c,0 0 0 13px #3d37a3,0 18px 55px rgba(124,92,255,.5),inset 0 -10px 30px rgba(0,0,0,.4);
-  touch-action:none;cursor:pointer;transition:transform .09s ease-out;will-change:transform}
-.tap .tapRat{width:80%;height:80%;pointer-events:none;display:flex;align-items:center;justify-content:center}
+  touch-action:none;cursor:pointer;transition:transform .09s ease-out,box-shadow .5s ease;will-change:transform}
+/* Кольцо кнопки тапа подсвечивается цветом текущей лиги */
+.tap.lg1{box-shadow:0 0 0 7px #7a4a1d,0 0 0 13px #cd7f32,0 18px 55px rgba(205,127,50,.5),inset 0 -10px 30px rgba(0,0,0,.4)}
+.tap.lg2{box-shadow:0 0 0 7px #888d97,0 0 0 13px #cfd4db,0 18px 55px rgba(199,203,209,.5),inset 0 -10px 30px rgba(0,0,0,.4)}
+.tap.lg3{box-shadow:0 0 0 7px #a8790a,0 0 0 13px #ffcf4a,0 18px 55px rgba(255,207,74,.55),inset 0 -10px 30px rgba(0,0,0,.4)}
+.tap.lg4{box-shadow:0 0 0 7px #5c6b85,0 0 0 13px #d7e8f7,0 18px 55px rgba(215,232,247,.55),inset 0 -10px 30px rgba(0,0,0,.4)}
+.tap.lg5{box-shadow:0 0 0 7px #1f7a8c,0 0 0 13px #7ee8fa,0 18px 60px rgba(126,232,250,.6),inset 0 -10px 30px rgba(0,0,0,.4)}
+.tap.lg6{box-shadow:0 0 0 7px #7c5cff,0 0 0 14px #ffcf4a,0 20px 65px rgba(255,207,74,.65),inset 0 -10px 30px rgba(0,0,0,.4)}
+.tap .tapRat{width:80%;height:80%;pointer-events:none;display:flex;align-items:center;justify-content:center;
+  transition:filter .5s ease}
 .tap .tapRat svg{width:100%;height:100%;filter:drop-shadow(0 6px 10px rgba(0,0,0,.45));
   animation:idleBreath 2.6s ease-in-out infinite}
 .tap .tapRat img.bossImg{width:100%;height:100%;object-fit:cover;border-radius:50%;
   filter:drop-shadow(0 6px 10px rgba(0,0,0,.45));animation:idleBreath 2.6s ease-in-out infinite}
-.tap .tapRat.sad svg,.tap .tapRat.sad img.bossImg{filter:grayscale(.4) brightness(.82) drop-shadow(0 6px 10px rgba(0,0,0,.45))}
 @keyframes idleBreath{0%,100%{transform:scale(1)}50%{transform:scale(1.035)}}
 @keyframes happySway{0%,100%{transform:scale(1) rotate(0)}30%{transform:scale(1.05) rotate(-3deg)}60%{transform:scale(1.07) rotate(3deg)}}
 @keyframes hungryDroop{0%,100%{transform:scale(1) translateY(0) rotate(0)}50%{transform:scale(.97) translateY(3px) rotate(-1.5deg)}}
@@ -80,6 +87,7 @@ body{
   animation:hungryDroop 2.4s ease-in-out infinite}
 .profRat.mood-weak svg,.profRat.mood-weak img.bossImg,.tap .tapRat.mood-weak svg,.tap .tapRat.mood-weak img.bossImg{
   animation:weakShiver 2.2s ease-in-out infinite}
+.tap .tapRat.lvlup{animation:evo .7s ease}
 .energy{padding:6px 0 12px}
 .energy .row{display:flex;justify-content:space-between;font-size:13px;margin-bottom:6px}
 .float{position:fixed;pointer-events:none;font-weight:800;font-size:30px;color:#fff;z-index:50;
@@ -757,6 +765,7 @@ nav button.on span{transform:scale(1.15)}
       $('lgNext').textContent = 'Максимум';
       $('lgFill').style.width = '100%';
     }
+    renderTapButton();
 
     var bb = $('buffbar');
     if (buffActive()) {
@@ -820,7 +829,7 @@ nav button.on span{transform:scale(1.15)}
       extra + '</svg>';
   }
 
-  // ---------- Отрисовка: образ крысы (профиль + кнопка тапа) ----------
+  // ---------- Отрисовка: образ крысы (профиль, по стадии сытости) ----------
   function moodClass() {
     if (S.feed.satiated) return 'mood-happy';
     if (S.feed.missStreak >= 3) return 'mood-weak';
@@ -837,6 +846,40 @@ nav button.on span{transform:scale(1.15)}
     el.classList.add(moodClass());
   }
 
+  // ---------- Отрисовка: образ на кнопке тапа (персонаж-герой, по лиге) ----------
+  // Кнопку тапа ведёт не стадия сытости, а текущая лига (см. LEAGUES/leagueIndex):
+  // сам персонаж один и тот же (фото, которое прислал пользователь), но его тон/свечение
+  // и кольцо вокруг кнопки меняются от лиги к лиге — от серой до "Короля крыс".
+  var LEAGUE_FILTERS = [
+    'grayscale(.5) brightness(.95) saturate(.9)',                 // Серая крыса
+    'sepia(.35) saturate(1.35) hue-rotate(-8deg) brightness(.97)', // Бронзовая крыса
+    'grayscale(.2) brightness(1.08) contrast(1.05)',                // Серебряная крыса
+    'saturate(1.3) sepia(.12) hue-rotate(-4deg) brightness(1.05)',  // Золотая крыса
+    'saturate(.92) brightness(1.12) contrast(1.05)',                // Платиновая крыса
+    'saturate(1.15) brightness(1.1) hue-rotate(2deg)',              // Алмазная крыса
+    'saturate(1.25) brightness(1.12) contrast(1.05)'                // Король крыс
+  ];
+  var MOOD_FILTERS = { 'mood-happy': '', 'mood-hungry': 'grayscale(.35) brightness(.92)', 'mood-weak': 'grayscale(.55) brightness(.8)' };
+  var lastLeagueShown = -1;
+  function renderTapButton() {
+    var tap = $('tap'), tr = $('tapRat');
+    if (!tap || !tr) return;
+    if (!tr.firstChild) {
+      tr.innerHTML = '<img class="bossImg" src="' + TAP_HERO_IMG + '" alt="Герой игры">';
+    }
+    var i = leagueIndex();
+    tap.className = 'tap' + (i > 0 ? ' lg' + i : '');
+    var mood = moodClass();
+    tr.classList.remove('mood-happy', 'mood-hungry', 'mood-weak');
+    tr.classList.add(mood);
+    tr.style.filter = 'drop-shadow(0 6px 10px rgba(0,0,0,.45)) ' + LEAGUE_FILTERS[i] + ' ' + MOOD_FILTERS[mood];
+    if (lastLeagueShown >= 0 && i > lastLeagueShown) {
+      tr.classList.remove('lvlup'); void tr.offsetWidth; tr.classList.add('lvlup');
+      sndEvo();
+    }
+    lastLeagueShown = i;
+  }
+
   // ---------- Отрисовка: Профиль ----------
   var lastStageShown = -1;
   function renderProfile() {
@@ -850,11 +893,8 @@ nav button.on span{transform:scale(1.15)}
     var sad = !S.feed.satiated;
     var r = $('profRat');
     renderRatAvatar(r, idx, sad, HERO_IMG);
-    var tr = $('tapRat');
-    renderRatAvatar(tr, idx, sad, TAP_HERO_IMG);
     if (lastStageShown >= 0 && idx > lastStageShown) {
       r.classList.remove('evo'); void r.offsetWidth; r.classList.add('evo');
-      if (tr) { tr.classList.remove('evo'); void tr.offsetWidth; tr.classList.add('evo'); }
       sndEvo();
     }
     lastStageShown = idx;
@@ -1188,9 +1228,9 @@ nav button.on span{transform:scale(1.15)}
     S.coins += gain; S.earned += gain;
     S.energy = Math.min(maxEnergy(), S.energy + regen());
     if (gain > 0) dirty = true;
-    renderAll();
+    renderAll(); // внутри также обновляет кольцо/тон кнопки тапа по текущей лиге (renderTapButton)
     if ($('s-shop').classList.contains('on')) updateShop();
-    renderProfile(); // тоже обновляет #tapRat на кнопке тапа, поэтому не ограничиваем вкладкой "Профиль"
+    renderProfile();
   }, 1000);
 
   // Сохранение каждые 3 секунды, если что-то менялось, и при сворачивании
