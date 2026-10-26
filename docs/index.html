@@ -169,6 +169,16 @@ body{
 .feedRow .row{display:flex;justify-content:space-between;font-size:13px;margin-bottom:6px}
 #feedFill{background:linear-gradient(90deg,#35d07f,#9dff5c)}
 .feedBtn{width:100%;margin-top:10px}
+.tap .tapRat img.rimg{width:100%;height:100%;object-fit:contain;object-position:50% 100%;animation:idleBreath 2.6s ease-in-out infinite}
+.profRat img.rimg{width:100%;height:100%;object-fit:contain;object-position:50% 100%;
+  filter:drop-shadow(0 8px 16px rgba(0,0,0,.4));transition:filter .2s;animation:idleBreath 3s ease-in-out infinite}
+.profRat.sad img.rimg{filter:grayscale(.4) brightness(.82) drop-shadow(0 8px 16px rgba(0,0,0,.4))}
+.profRat.mood-happy img.rimg,.tap .tapRat.mood-happy img.rimg{animation:happySway 1.6s ease-in-out infinite}
+.profRat.mood-hungry img.rimg,.tap .tapRat.mood-hungry img.rimg{animation:hungryDroop 2.4s ease-in-out infinite}
+.profRat.mood-weak img.rimg,.tap .tapRat.mood-weak img.rimg{animation:weakShiver 2.2s ease-in-out infinite}
+.profRat{width:min(52vw,220px)}
+.feedBtn{background:var(--lg,#7c5cff);color:var(--lgText,#fff);transition:background .4s ease,color .4s ease}
+
 .grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px}
 .grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:10px}
 .statcard{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:10px;text-align:center;
@@ -872,30 +882,42 @@ nav button.on span{transform:scale(1.15)}
   // Кнопку тапа ведёт не стадия сытости, а текущая лига (см. LEAGUES/leagueIndex):
   // у каждой лиги своя готовая картинка мышки; последняя лига — король с короной.
   var LEAGUE_IMGS = [
-    'assets/league0.jpg',   // Серая крыса
-    'assets/league1.jpg',   // Бронзовая крыса
-    'assets/league2.jpg',   // Серебряная крыса
-    'assets/league3.jpg',   // Золотая крыса
-    'assets/league4.jpg',   // Платиновая крыса
-    'assets/league5.jpg',   // Алмазная крыса
+    'assets/royal0.png',   // Серая крыса
+    'assets/royal1.png',   // Бронзовая крыса
+    'assets/royal2.png',   // Серебряная крыса
+    'assets/royal3.png',   // Золотая крыса
+    'assets/royal4.png',   // Платиновая крыса
+    'assets/royal5.png',   // Алмазная крыса
     TAP_HERO_IMG            // Король крыс
   ];
   var MOOD_FILTERS = { 'mood-happy': '', 'mood-hungry': 'grayscale(.35) brightness(.92)', 'mood-weak': 'grayscale(.55) brightness(.8)' };
+  // Картинка лиги: 0-5 — прозрачные персонажи (вписываются целиком), король — круглое фото.
+  function setLeagueImg(el, i) {
+    var src = LEAGUE_IMGS[i];
+    var img = el.firstChild;
+    if (!img || img.tagName !== 'IMG') {
+      el.innerHTML = '';
+      img = document.createElement('img');
+      img.alt = 'Крыса лиги';
+      el.appendChild(img);
+    }
+    var cls = i >= LEAGUE_IMGS.length - 1 ? 'bossImg' : 'rimg';
+    if (img.className !== cls) img.className = cls;
+    if (img.getAttribute('src') !== src) img.setAttribute('src', src);
+  }
+  var LEAGUE_COLORS = [
+    ['#6b7280', '#fff'], ['#cd7f32', '#fff'], ['#c7cbd1', '#1b1f2a'], ['#ffcf4a', '#2a1d00'],
+    ['#d7e8f7', '#1b2a3a'], ['#7ee8fa', '#06303a'], ['#8b6cff', '#fff']
+  ];
   var lastLeagueShown = -1;
   function renderTapButton() {
     var tap = $('tap'), tr = $('tapRat');
     if (!tap || !tr) return;
     var i = leagueIndex();
-    var src = LEAGUE_IMGS[i];
-    var img = tr.firstChild;
-    if (!img) {
-      img = document.createElement('img');
-      img.className = 'bossImg';
-      img.alt = 'Герой игры';
-      tr.appendChild(img);
-    }
-    if (img.getAttribute('src') !== src) img.setAttribute('src', src);
+    setLeagueImg(tr, i);
     tap.className = 'tap' + (i > 0 ? ' lg' + i : '');
+    document.body.style.setProperty('--lg', LEAGUE_COLORS[i][0]);
+    document.body.style.setProperty('--lgText', LEAGUE_COLORS[i][1]);
     var mood = moodClass();
     tr.classList.remove('mood-happy', 'mood-hungry', 'mood-weak');
     tr.classList.add(mood);
@@ -919,7 +941,10 @@ nav button.on span{transform:scale(1.15)}
 
     var sad = !S.feed.satiated;
     var r = $('profRat');
-    renderRatAvatar(r, idx, sad, HERO_IMG);
+    setLeagueImg(r, leagueIndex());
+    r.classList.toggle('sad', sad);
+    r.classList.remove('mood-happy', 'mood-hungry', 'mood-weak');
+    r.classList.add(moodClass());
     if (lastStageShown >= 0 && idx > lastStageShown) {
       r.classList.remove('evo'); void r.offsetWidth; r.classList.add('evo');
       sndEvo();
