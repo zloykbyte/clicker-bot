@@ -456,34 +456,34 @@ nav button.on span{transform:scale(1.15)}
   // base: цена первого уровня, g: во сколько раз дорожает каждый следующий уровень
   var UPGRADES = [
     // --- сила тапа: +2, +4, +8 ... за тап (до множителей лиги и бонуса) ---
-    { id: 'paws',    cat: 'tap', icon: '👊', name: 'Крепкие лапки',    base: 500,      g: 1.8, fx: 'tap', v: 2 },
-    { id: 'claws',   cat: 'tap', icon: '🗡️', name: 'Острые когти',     base: 6000,     g: 1.8, fx: 'tap', v: 4 },
-    { id: 'steel',   cat: 'tap', icon: '⚔️', name: 'Стальные когти',   base: 50000,    g: 1.8, fx: 'tap', v: 8 },
-    { id: 'gold',    cat: 'tap', icon: '🥇', name: 'Золотые когти',    base: 400000,   g: 1.8, fx: 'tap', v: 16 },
-    { id: 'diamond', cat: 'tap', icon: '💎', name: 'Алмазные когти',   base: 3000000,  g: 1.8, fx: 'tap', v: 32 },
-    { id: 'royal',   cat: 'tap', icon: '👑', name: 'Королевская лапа', base: 25000000, g: 1.8, fx: 'tap', v: 64 },
+    { id: 'paws',    cat: 'tap', icon: '👊', name: 'Крепкие лапки',    base: 300, g: 1.6, fx: 'tap', v: 2 },
+    { id: 'claws',   cat: 'tap', icon: '🗡️', name: 'Острые когти',     base: 3600, g: 1.6, fx: 'tap', v: 4 },
+    { id: 'steel',   cat: 'tap', icon: '⚔️', name: 'Стальные когти',   base: 30000, g: 1.6, fx: 'tap', v: 8 },
+    { id: 'gold',    cat: 'tap', icon: '🥇', name: 'Золотые когти',    base: 240000, g: 1.6, fx: 'tap', v: 16 },
+    { id: 'diamond', cat: 'tap', icon: '💎', name: 'Алмазные когти',   base: 1800000, g: 1.6, fx: 'tap', v: 32 },
+    { id: 'royal',   cat: 'tap', icon: '👑', name: 'Королевская лапа', base: 15000000, g: 1.6, fx: 'tap', v: 64 },
 
     // --- энергия: базовый запас теперь меньше (300), поэтому прокачек больше ---
-    { id: 'pouch',    cat: 'energy', icon: '🎒', name: 'Защёчные мешки',          base: 250,    g: 1.55, fx: 'maxEnergy', v: 150 },
-    { id: 'regen1',   cat: 'energy', icon: '🔋', name: 'Быстрое восстановление',  base: 600,    g: 1.7,  fx: 'regen',     v: 1 },
-    { id: 'pouch2',   cat: 'energy', icon: '🧺', name: 'Большая кладовая',        base: 3000,   g: 1.6,  fx: 'maxEnergy', v: 400 },
-    { id: 'bigcheese',cat: 'energy', icon: '⚡', name: 'Энергетический сыр',      base: 15000,  g: 1.6,  fx: 'maxEnergy', v: 1200 },
-    { id: 'regen2',   cat: 'energy', icon: '🌩️', name: 'Турбо-восстановление',    base: 20000,  g: 1.85, fx: 'regen',     v: 3 },
-    { id: 'pouch3',   cat: 'energy', icon: '🏺', name: 'Подземный склад',         base: 120000, g: 1.6,  fx: 'maxEnergy', v: 3000 },
-    { id: 'regen3',   cat: 'energy', icon: '🌪️', name: 'Вихрь энергии',           base: 180000, g: 1.9,  fx: 'regen',     v: 8 },
+    { id: 'pouch',    cat: 'energy', icon: '🎒', name: 'Защёчные мешки',          base: 150, g: 1.4, fx: 'maxEnergy', v: 150 },
+    { id: 'regen1',   cat: 'energy', icon: '🔋', name: 'Быстрое восстановление',  base: 360, g: 1.55,  fx: 'regen',     v: 1 },
+    { id: 'pouch2',   cat: 'energy', icon: '🧺', name: 'Большая кладовая',        base: 1800, g: 1.45,  fx: 'maxEnergy', v: 400 },
+    { id: 'bigcheese',cat: 'energy', icon: '⚡', name: 'Энергетический сыр',      base: 9000, g: 1.45,  fx: 'maxEnergy', v: 1200 },
+    { id: 'regen2',   cat: 'energy', icon: '🌩️', name: 'Турбо-восстановление',    base: 12000, g: 1.7, fx: 'regen',     v: 3 },
+    { id: 'pouch3',   cat: 'energy', icon: '🏺', name: 'Подземный склад',         base: 72000, g: 1.45,  fx: 'maxEnergy', v: 3000 },
+    { id: 'regen3',   cat: 'energy', icon: '🌪️', name: 'Вихрь энергии',           base: 108000, g: 1.75,  fx: 'regen',     v: 8 },
 
     // --- доход в час ---
-    { id: 'cheese',  cat: 'passive', icon: '🧀', name: 'Сыр на завтрак',   base: 100,       g: 1.55, fx: 'perHour', v: 5 },
-    { id: 'burrow',  cat: 'passive', icon: '🕳️', name: 'Новая нора',       base: 500,       g: 1.55, fx: 'perHour', v: 25 },
-    { id: 'chef',    cat: 'passive', icon: '🧑‍🍳', name: 'Крыса-повар',      base: 2000,      g: 1.55, fx: 'perHour', v: 100 },
-    { id: 'metro',   cat: 'passive', icon: '🚇', name: 'Метро-тоннели',    base: 10000,     g: 1.55, fx: 'perHour', v: 450 },
-    { id: 'factory', cat: 'passive', icon: '🏭', name: 'Сырная фабрика',   base: 50000,     g: 1.55, fx: 'perHour', v: 2000 },
-    { id: 'king',    cat: 'passive', icon: '👑', name: 'Король крыс',      base: 250000,    g: 1.55, fx: 'perHour', v: 9000 },
-    { id: 'bourse',  cat: 'passive', icon: '📈', name: 'Крысиная биржа',   base: 700000,    g: 1.55, fx: 'perHour', v: 22000 },
-    { id: 'bank',    cat: 'passive', icon: '🏦', name: 'Крысиный банк',    base: 2000000,   g: 1.55, fx: 'perHour', v: 55000 },
-    { id: 'city',    cat: 'passive', icon: '🏙️', name: 'Подземный город',  base: 8000000,   g: 1.55, fx: 'perHour', v: 190000 },
-    { id: 'space',   cat: 'passive', icon: '🚀', name: 'Космическая крыса', base: 35000000, g: 1.55, fx: 'perHour', v: 750000 },
-    { id: 'empire',  cat: 'passive', icon: '🌍', name: 'Крысиная империя', base: 150000000, g: 1.55, fx: 'perHour', v: 3000000 }
+    { id: 'cheese',  cat: 'passive', icon: '🧀', name: 'Сыр на завтрак',   base: 60, g: 1.5, fx: 'perHour', v: 5 },
+    { id: 'burrow',  cat: 'passive', icon: '🕳️', name: 'Новая нора',       base: 300, g: 1.5, fx: 'perHour', v: 25 },
+    { id: 'chef',    cat: 'passive', icon: '🧑‍🍳', name: 'Крыса-повар',      base: 1200, g: 1.5, fx: 'perHour', v: 100 },
+    { id: 'metro',   cat: 'passive', icon: '🚇', name: 'Метро-тоннели',    base: 6000, g: 1.5, fx: 'perHour', v: 450 },
+    { id: 'factory', cat: 'passive', icon: '🏭', name: 'Сырная фабрика',   base: 30000, g: 1.5, fx: 'perHour', v: 2000 },
+    { id: 'king',    cat: 'passive', icon: '👑', name: 'Король крыс',      base: 150000, g: 1.5, fx: 'perHour', v: 9000 },
+    { id: 'bourse',  cat: 'passive', icon: '📈', name: 'Крысиная биржа',   base: 420000, g: 1.5, fx: 'perHour', v: 22000 },
+    { id: 'bank',    cat: 'passive', icon: '🏦', name: 'Крысиный банк',    base: 1200000, g: 1.5, fx: 'perHour', v: 55000 },
+    { id: 'city',    cat: 'passive', icon: '🏙️', name: 'Подземный город',  base: 4800000, g: 1.5, fx: 'perHour', v: 190000 },
+    { id: 'space',   cat: 'passive', icon: '🚀', name: 'Космическая крыса', base: 21000000, g: 1.5, fx: 'perHour', v: 750000 },
+    { id: 'empire',  cat: 'passive', icon: '🌍', name: 'Крысиная империя', base: 90000000, g: 1.5, fx: 'perHour', v: 3000000 }
   ];
   var CAT_HINT = {
     tap: 'Чем сильнее лапы, тем больше RatCoin за каждый тап.',
