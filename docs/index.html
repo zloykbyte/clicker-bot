@@ -116,6 +116,15 @@ body{
 /* SHOP */
 .h1{font-size:20px;font-weight:800;margin:10px 0 4px}
 .hint{color:var(--muted);font-size:13px;margin:0 0 10px}
+.topOpen{width:100%;margin-top:10px}
+.topList{display:flex;flex-direction:column;gap:6px;margin:4px 0 8px}
+.topRow{display:flex;align-items:center;gap:10px;background:var(--card);border:1px solid var(--line);
+  border-radius:12px;padding:10px 12px;animation:rowIn .25s ease both}
+.topRow .rk{width:30px;text-align:center;font-weight:800;color:var(--muted);flex:none}
+.topRow .nm{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:600}
+.topRow .vl{font-weight:800;color:var(--gold);flex:none}
+.topEmpty{text-align:center;color:var(--muted);padding:22px 8px;font-size:14px}
+@keyframes rowIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
 .seg{display:flex;gap:6px;margin:0 0 10px}
 .seg button{flex:1;background:var(--card);border:1px solid var(--line);color:var(--muted);border-radius:12px;
   padding:9px 4px;font:inherit;font-size:13px;font-weight:600;cursor:pointer;
@@ -310,6 +319,25 @@ nav button.on span{transform:scale(1.15)}
         <div class="statcard"><div class="sc-k">Заработано всего</div><div class="sc-v" id="profEarned">0</div></div>
       </div>
       <div class="nextcard" id="nextCard"></div>
+      <button class="btn topOpen" id="openTop">🏆 Рейтинг игроков</button>
+    </section>
+
+    <!-- РЕЙТИНГ -->
+    <section class="screen" id="s-top">
+      <div class="h1">Рейтинг игроков</div>
+      <div class="seg" id="topMetric">
+        <button class="on" data-m="coins">💰 Монеты</button>
+        <button data-m="power">👆 Сила клика</button>
+        <button data-m="earned">📈 Заработок</button>
+      </div>
+      <div class="seg" id="topLimit">
+        <button data-n="3">Топ-3</button>
+        <button class="on" data-n="10">Топ-10</button>
+        <button data-n="100">Топ-100</button>
+      </div>
+      <div class="topList" id="topList"></div>
+      <p class="hint" id="topNote"></p>
+      <button class="btn topOpen" id="topRefresh">🔄 Обновить</button>
     </section>
 
     <!-- ИГРАТЬ -->
@@ -1183,24 +1211,101 @@ nav button.on span{transform:scale(1.15)}
   // ---------- Вкладки ----------
   var TAB_TITLES = {
     profile: '🪪 Профиль', play: '🐀 Rat Combat', shop: '🧀 Улучшения',
-    friends: '👥 Друзья', tasks: '📋 Задания', settings: '⚙️ Настройки'
+    friends: '👥 Друзья', tasks: '📋 Задания', settings: '⚙️ Настройки', top: '🏆 Рейтинг'
   };
   var tabs = document.querySelectorAll('nav button');
+  var SCREENS = ['profile', 'play', 'shop', 'friends', 'tasks', 'settings', 'top'];
+  function openScreen(name) {
+    var navName = name === 'top' ? 'profile' : name;   // у рейтинга нет своей вкладки: подсвечиваем «Профиль»
+    Array.prototype.forEach.call(tabs, function (x) { x.classList.toggle('on', x.getAttribute('data-s') === navName); });
+    SCREENS.forEach(function (n) { $('s-' + n).classList.toggle('on', n === name); });
+    var whoEl = $('who');
+    whoEl.textContent = TAB_TITLES[name] || '🐀 Rat Combat';
+    whoEl.classList.remove('swap'); void whoEl.offsetWidth; whoEl.classList.add('swap');
+    if (name === 'shop') renderShop();
+    if (name === 'profile') renderProfile();
+    if (name === 'top') loadTop();
+  }
   Array.prototype.forEach.call(tabs, function (b) {
     b.addEventListener('click', function () {
       onFirstInteraction(); sndTab();
-      var name = b.getAttribute('data-s');
-      Array.prototype.forEach.call(tabs, function (x) { x.classList.toggle('on', x === b); });
-      ['profile', 'play', 'shop', 'friends', 'tasks', 'settings'].forEach(function (n) {
-        $('s-' + n).classList.toggle('on', n === name);
-      });
-      var whoEl = $('who');
-      whoEl.textContent = TAB_TITLES[name] || '🐀 Rat Combat';
-      whoEl.classList.remove('swap'); void whoEl.offsetWidth; whoEl.classList.add('swap');
-      if (name === 'shop') renderShop();
-      if (name === 'profile') renderProfile();
+      openScreen(b.getAttribute('data-s'));
     });
   });
+
+  // ---------- Рейтинг и учёт посещений (нужен API бота, адрес приходит в ссылке ?api=...) ----------
+  var API = '';
+  var startTab = '';
+  try {
+    var qs = new URLSearchParams(location.search);
+    var apiParam = qs.get('api');
+    if (apiParam && /^https:\/\/[^\s]+$/.test(apiParam)) localStorage.setItem('ratcombat_api', apiParam.replace(/\/+$/, ''));
+    API = localStorage.getItem('ratcombat_api') || '';
+    startTab = qs.get('tab') || '';
+  } catch (e) {}
+
+  var lastSyncedEarned = -1;
+  function syncState(force) {
+    if (!API || !tg || !tg.initData) return;
+    var earned = Math.floor(S.earned);
+    if (!force && earned === lastSyncedEarned) return;   // ничего не менялось — не шлём
+    lastSyncedEarned = earned;
+    try {
+      fetch(API + '/api/sync', {
+        method: 'POST', keepalive: true,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          initData: tg.initData, coins: Math.floor(S.coins), tapPower: tapBaseValue(),
+          earned: earned, taps: S.taps
+        })
+      }).catch(function () {});
+    } catch (e) {}
+  }
+
+  var topM = 'coins', topN = 10, topBusy = false;
+  function topMsg(t) {
+    var el = $('topList'); el.innerHTML = '';
+    var d = document.createElement('div'); d.className = 'topEmpty'; d.textContent = t; el.appendChild(d);
+  }
+  function loadTop() {
+    if (!API) { topMsg('Рейтинг пока недоступен: сервер бота не подключён.'); $('topNote').textContent = ''; return; }
+    if (topBusy) return;
+    topBusy = true; $('topRefresh').disabled = true;
+    fetch(API + '/api/top?metric=' + topM + '&limit=' + topN + '&_=' + Date.now(), { cache: 'no-store' })
+      .then(function (r) { return r.json(); })
+      .then(function (d) {
+        var el = $('topList'); el.innerHTML = '';
+        if (!d.items || !d.items.length) { topMsg('Пока никого нет — будь первым!'); return; }
+        var medals = ['🥇', '🥈', '🥉'];
+        d.items.forEach(function (it, i) {
+          var row = document.createElement('div'); row.className = 'topRow';
+          row.style.animationDelay = Math.min(i, 12) * 25 + 'ms';
+          var rk = document.createElement('span'); rk.className = 'rk'; rk.textContent = i < 3 ? medals[i] : String(it.rank);
+          var nm = document.createElement('span'); nm.className = 'nm'; nm.textContent = it.name;
+          var vl = document.createElement('span'); vl.className = 'vl'; vl.textContent = fmt(it.value);
+          row.appendChild(rk); row.appendChild(nm); row.appendChild(vl); el.appendChild(row);
+        });
+        $('topNote').textContent = 'Обновлено ' + new Date().toLocaleTimeString('ru-RU');
+      })
+      .catch(function () { topMsg('Не удалось загрузить рейтинг. Попробуй обновить.'); })
+      .then(function () { topBusy = false; $('topRefresh').disabled = false; });
+  }
+  Array.prototype.forEach.call(document.querySelectorAll('#topMetric button'), function (b) {
+    b.addEventListener('click', function () {
+      onFirstInteraction(); sndTab(); topM = b.getAttribute('data-m');
+      Array.prototype.forEach.call(document.querySelectorAll('#topMetric button'), function (x) { x.classList.toggle('on', x === b); });
+      loadTop();
+    });
+  });
+  Array.prototype.forEach.call(document.querySelectorAll('#topLimit button'), function (b) {
+    b.addEventListener('click', function () {
+      onFirstInteraction(); sndTab(); topN = parseInt(b.getAttribute('data-n'), 10);
+      Array.prototype.forEach.call(document.querySelectorAll('#topLimit button'), function (x) { x.classList.toggle('on', x === b); });
+      loadTop();
+    });
+  });
+  $('topRefresh').addEventListener('click', function () { onFirstInteraction(); sndTab(); loadTop(); });
+  $('openTop').addEventListener('click', function () { onFirstInteraction(); sndTab(); openScreen('top'); });
 
   // ---------- Друзья ----------
   $('invite').addEventListener('click', function () {
@@ -1336,9 +1441,14 @@ nav button.on span{transform:scale(1.15)}
     renderProfile();
   }, 1000);
 
+  // Учёт посещения: первый sync при входе, дальше раз в 30 секунд, если прогресс менялся
+  setTimeout(function () { syncState(true); }, 3000); // чуть позже, чтобы успела подтянуться облачная копия
+  setInterval(function () { syncState(false); }, 30000);
+  if (startTab === 'top') openScreen('top');
+
   // Сохранение каждые 3 секунды, если что-то менялось, и при сворачивании
   setInterval(function () { if (dirty) save(); }, 3000);
-  document.addEventListener('visibilitychange', function () { if (document.hidden) save(); });
+  document.addEventListener('visibilitychange', function () { if (document.hidden) { save(); syncState(false); } });
   window.addEventListener('pagehide', save);
 
   // Без зума и контекстного меню
