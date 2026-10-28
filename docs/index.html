@@ -120,11 +120,14 @@ body{
 .ipsCard{flex:none;max-height:0;opacity:0;overflow:hidden;margin-top:0;padding:0 14px;background:var(--card);
   border:0 solid var(--line);border-radius:12px;
   transition:max-height .35s ease,opacity .3s ease,margin .3s ease,padding .3s ease,border-width .3s ease}
-.ipsCard.on{max-height:260px;opacity:1;margin-top:10px;padding:12px 14px;border-width:1px}
+.ipsCard.on{max-height:460px;opacity:1;margin-top:10px;padding:12px 14px;border-width:1px}
 .ipsRow{display:flex;justify-content:space-between;gap:10px;padding:5px 0;font-size:14px}
 .ipsRow b{color:var(--gold);flex:none}
 .ipsRow.total{border-top:1px solid var(--line);margin-top:4px;padding-top:9px;font-weight:700}
 .ipsRow.total b{font-size:16px}
+.ipsRow.sub{font-size:12px;color:var(--muted);padding:3px 0}
+.ipsRow.sub b{color:var(--muted);font-weight:600}
+.ipsGroup{border-top:1px dashed var(--line);margin-top:6px;padding-top:6px}
 .topList{display:flex;flex-direction:column;gap:6px;margin:4px 0 8px}
 .topRow{display:flex;align-items:center;gap:10px;background:var(--card);border:1px solid var(--line);
   border-radius:12px;padding:10px 12px;animation:rowIn .25s ease both}
@@ -331,7 +334,14 @@ nav button.on span{transform:scale(1.15)}
       <div class="ipsCard" id="ipsCard">
         <div class="ipsRow"><span>🧀 Пассивный доход</span><b id="ipsPassive">0</b></div>
         <div class="ipsRow"><span>👆 С тапов (если тапать без остановки)</span><b id="ipsTap">0</b></div>
-        <div class="ipsRow total"><span>Всего</span><b id="ipsTotal">0</b></div>
+        <div class="ipsRow total"><span>Всего в секунду</span><b id="ipsTotal">0</b></div>
+        <div class="ipsRow"><span>⏱ В минуту</span><b id="ipsMinute">0</b></div>
+        <div class="ipsRow"><span>🕐 В час</span><b id="ipsHour">0</b></div>
+        <div class="ipsGroup">
+          <div class="ipsRow sub"><span>🧀 Доход в час (от прокачек)</span><b id="ipsPassiveHour">0</b></div>
+          <div class="ipsRow sub"><span>💪 Монет за один тап</span><b id="ipsPerTap">0</b></div>
+          <div class="ipsRow sub"><span>⚡ Макс. тапов в секунду</span><b id="ipsTapsPerSec">0</b></div>
+        </div>
         <p class="hint">В RatCoin в секунду. Тапы ограничены энергией: она восстанавливается со скоростью <span id="ipsRegen">0</span> в секунду, это и есть предел непрерывных тапов.</p>
       </div>
       <button class="btn topOpen" id="openTop">🏆 Рейтинг игроков</button>
@@ -488,17 +498,17 @@ nav button.on span{transform:scale(1.15)}
     { id: 'regen3',   cat: 'energy', icon: '🌪️', name: 'Вихрь энергии',           base: 216000, g: 1.75,  fx: 'regen',     v: 8 },
 
     // --- доход в час ---
-    { id: 'cheese',  cat: 'passive', icon: '🧀', name: 'Сыр на завтрак',   base: 42, g: 1.5, fx: 'perHour', v: 5 },
-    { id: 'burrow',  cat: 'passive', icon: '🕳️', name: 'Новая нора',       base: 210, g: 1.5, fx: 'perHour', v: 25 },
-    { id: 'chef',    cat: 'passive', icon: '🧑‍🍳', name: 'Крыса-повар',      base: 840, g: 1.5, fx: 'perHour', v: 100 },
-    { id: 'metro',   cat: 'passive', icon: '🚇', name: 'Метро-тоннели',    base: 4200, g: 1.5, fx: 'perHour', v: 450 },
-    { id: 'factory', cat: 'passive', icon: '🏭', name: 'Сырная фабрика',   base: 21000, g: 1.5, fx: 'perHour', v: 2000 },
-    { id: 'king',    cat: 'passive', icon: '👑', name: 'Король крыс',      base: 105000, g: 1.5, fx: 'perHour', v: 9000 },
-    { id: 'bourse',  cat: 'passive', icon: '📈', name: 'Крысиная биржа',   base: 294000, g: 1.5, fx: 'perHour', v: 22000 },
-    { id: 'bank',    cat: 'passive', icon: '🏦', name: 'Крысиный банк',    base: 840000, g: 1.5, fx: 'perHour', v: 55000 },
-    { id: 'city',    cat: 'passive', icon: '🏙️', name: 'Подземный город',  base: 3360000, g: 1.5, fx: 'perHour', v: 190000 },
-    { id: 'space',   cat: 'passive', icon: '🚀', name: 'Космическая крыса', base: 14700000, g: 1.5, fx: 'perHour', v: 750000 },
-    { id: 'empire',  cat: 'passive', icon: '🌍', name: 'Крысиная империя', base: 63000000, g: 1.5, fx: 'perHour', v: 3000000 }
+    { id: 'cheese',  cat: 'passive', icon: '🧀', name: 'Сыр на завтрак',   base: 21, g: 1.5, fx: 'perHour', v: 5 },
+    { id: 'burrow',  cat: 'passive', icon: '🕳️', name: 'Новая нора',       base: 105, g: 1.5, fx: 'perHour', v: 25 },
+    { id: 'chef',    cat: 'passive', icon: '🧑‍🍳', name: 'Крыса-повар',      base: 420, g: 1.5, fx: 'perHour', v: 100 },
+    { id: 'metro',   cat: 'passive', icon: '🚇', name: 'Метро-тоннели',    base: 2100, g: 1.5, fx: 'perHour', v: 450 },
+    { id: 'factory', cat: 'passive', icon: '🏭', name: 'Сырная фабрика',   base: 10500, g: 1.5, fx: 'perHour', v: 2000 },
+    { id: 'king',    cat: 'passive', icon: '👑', name: 'Король крыс',      base: 52500, g: 1.5, fx: 'perHour', v: 9000 },
+    { id: 'bourse',  cat: 'passive', icon: '📈', name: 'Крысиная биржа',   base: 147000, g: 1.5, fx: 'perHour', v: 22000 },
+    { id: 'bank',    cat: 'passive', icon: '🏦', name: 'Крысиный банк',    base: 420000, g: 1.5, fx: 'perHour', v: 55000 },
+    { id: 'city',    cat: 'passive', icon: '🏙️', name: 'Подземный город',  base: 1680000, g: 1.5, fx: 'perHour', v: 190000 },
+    { id: 'space',   cat: 'passive', icon: '🚀', name: 'Космическая крыса', base: 7350000, g: 1.5, fx: 'perHour', v: 750000 },
+    { id: 'empire',  cat: 'passive', icon: '🌍', name: 'Крысиная империя', base: 31500000, g: 1.5, fx: 'perHour', v: 3000000 }
   ];
   var CAT_HINT = {
     tap: 'Чем сильнее лапы, тем больше RatCoin за каждый тап.',
@@ -1047,11 +1057,18 @@ nav button.on span{transform:scale(1.15)}
 
     // Доход в секунду: пассив + тапы на пределе восстановления энергии
     var ipsP = profit() / 3600;
-    var ipsT = regen() / ENERGY_PER_TAP * tapValue();
+    var tapsPerSec = regen() / ENERGY_PER_TAP;
+    var ipsT = tapsPerSec * tapValue();
+    var ipsTotalVal = ipsP + ipsT;
     var f2 = function (n) { return n >= 100 ? fmt(n) : n.toFixed(n >= 10 ? 1 : (n > 0 && n < 0.1 ? 3 : 2)).replace('.', ','); };
     setNum('ipsPassive', f2(ipsP));
     setNum('ipsTap', f2(ipsT));
-    setNum('ipsTotal', f2(ipsP + ipsT));
+    setNum('ipsTotal', f2(ipsTotalVal));
+    setNum('ipsMinute', f2(ipsTotalVal * 60));
+    setNum('ipsHour', fmt(ipsTotalVal * 3600));
+    setNum('ipsPassiveHour', fmt(profit()));
+    setNum('ipsPerTap', f2(tapValue()));
+    setNum('ipsTapsPerSec', f2(tapsPerSec));
     setNum('ipsRegen', fmt(regen()));
     setNum('profTaps', fmt(S.taps));
     setNum('profEarned', fmt(S.earned));
