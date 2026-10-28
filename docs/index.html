@@ -471,34 +471,34 @@ nav button.on span{transform:scale(1.15)}
   // base: цена первого уровня, g: во сколько раз дорожает каждый следующий уровень
   var UPGRADES = [
     // --- сила тапа: +2, +4, +8 ... за тап (до множителей лиги и бонуса) ---
-    { id: 'paws',    cat: 'tap', icon: '👊', name: 'Крепкие лапки',    base: 300, g: 1.6, fx: 'tap', v: 2 },
-    { id: 'claws',   cat: 'tap', icon: '🗡️', name: 'Острые когти',     base: 3600, g: 1.6, fx: 'tap', v: 4 },
-    { id: 'steel',   cat: 'tap', icon: '⚔️', name: 'Стальные когти',   base: 30000, g: 1.6, fx: 'tap', v: 8 },
-    { id: 'gold',    cat: 'tap', icon: '🥇', name: 'Золотые когти',    base: 240000, g: 1.6, fx: 'tap', v: 16 },
-    { id: 'diamond', cat: 'tap', icon: '💎', name: 'Алмазные когти',   base: 1800000, g: 1.6, fx: 'tap', v: 32 },
-    { id: 'royal',   cat: 'tap', icon: '👑', name: 'Королевская лапа', base: 15000000, g: 1.6, fx: 'tap', v: 64 },
+    { id: 'paws',    cat: 'tap', icon: '👊', name: 'Крепкие лапки',    base: 210, g: 1.6, fx: 'tap', v: 2 },
+    { id: 'claws',   cat: 'tap', icon: '🗡️', name: 'Острые когти',     base: 2520, g: 1.6, fx: 'tap', v: 4 },
+    { id: 'steel',   cat: 'tap', icon: '⚔️', name: 'Стальные когти',   base: 21000, g: 1.6, fx: 'tap', v: 8 },
+    { id: 'gold',    cat: 'tap', icon: '🥇', name: 'Золотые когти',    base: 168000, g: 1.6, fx: 'tap', v: 16 },
+    { id: 'diamond', cat: 'tap', icon: '💎', name: 'Алмазные когти',   base: 1260000, g: 1.6, fx: 'tap', v: 32 },
+    { id: 'royal',   cat: 'tap', icon: '👑', name: 'Королевская лапа', base: 10500000, g: 1.6, fx: 'tap', v: 64 },
 
     // --- энергия: базовый запас теперь меньше (300), поэтому прокачек больше ---
-    { id: 'pouch',    cat: 'energy', icon: '🎒', name: 'Защёчные мешки',          base: 150, g: 1.4, fx: 'maxEnergy', v: 150 },
-    { id: 'regen1',   cat: 'energy', icon: '🔋', name: 'Быстрое восстановление',  base: 360, g: 1.55,  fx: 'regen',     v: 1 },
+    { id: 'pouch',    cat: 'energy', icon: '🎒', name: 'Защёчные мешки',          base: 105, g: 1.4, fx: 'maxEnergy', v: 150 },
+    { id: 'regen1',   cat: 'energy', icon: '🔋', name: 'Быстрое восстановление',  base: 720, g: 1.55,  fx: 'regen',     v: 1 },
     { id: 'pouch2',   cat: 'energy', icon: '🧺', name: 'Большая кладовая',        base: 1800, g: 1.45,  fx: 'maxEnergy', v: 400 },
     { id: 'bigcheese',cat: 'energy', icon: '⚡', name: 'Энергетический сыр',      base: 9000, g: 1.45,  fx: 'maxEnergy', v: 1200 },
-    { id: 'regen2',   cat: 'energy', icon: '🌩️', name: 'Турбо-восстановление',    base: 12000, g: 1.7, fx: 'regen',     v: 3 },
+    { id: 'regen2',   cat: 'energy', icon: '🌩️', name: 'Турбо-восстановление',    base: 24000, g: 1.7, fx: 'regen',     v: 3 },
     { id: 'pouch3',   cat: 'energy', icon: '🏺', name: 'Подземный склад',         base: 72000, g: 1.45,  fx: 'maxEnergy', v: 3000 },
-    { id: 'regen3',   cat: 'energy', icon: '🌪️', name: 'Вихрь энергии',           base: 108000, g: 1.75,  fx: 'regen',     v: 8 },
+    { id: 'regen3',   cat: 'energy', icon: '🌪️', name: 'Вихрь энергии',           base: 216000, g: 1.75,  fx: 'regen',     v: 8 },
 
     // --- доход в час ---
-    { id: 'cheese',  cat: 'passive', icon: '🧀', name: 'Сыр на завтрак',   base: 60, g: 1.5, fx: 'perHour', v: 5 },
-    { id: 'burrow',  cat: 'passive', icon: '🕳️', name: 'Новая нора',       base: 300, g: 1.5, fx: 'perHour', v: 25 },
-    { id: 'chef',    cat: 'passive', icon: '🧑‍🍳', name: 'Крыса-повар',      base: 1200, g: 1.5, fx: 'perHour', v: 100 },
-    { id: 'metro',   cat: 'passive', icon: '🚇', name: 'Метро-тоннели',    base: 6000, g: 1.5, fx: 'perHour', v: 450 },
-    { id: 'factory', cat: 'passive', icon: '🏭', name: 'Сырная фабрика',   base: 30000, g: 1.5, fx: 'perHour', v: 2000 },
-    { id: 'king',    cat: 'passive', icon: '👑', name: 'Король крыс',      base: 150000, g: 1.5, fx: 'perHour', v: 9000 },
-    { id: 'bourse',  cat: 'passive', icon: '📈', name: 'Крысиная биржа',   base: 420000, g: 1.5, fx: 'perHour', v: 22000 },
-    { id: 'bank',    cat: 'passive', icon: '🏦', name: 'Крысиный банк',    base: 1200000, g: 1.5, fx: 'perHour', v: 55000 },
-    { id: 'city',    cat: 'passive', icon: '🏙️', name: 'Подземный город',  base: 4800000, g: 1.5, fx: 'perHour', v: 190000 },
-    { id: 'space',   cat: 'passive', icon: '🚀', name: 'Космическая крыса', base: 21000000, g: 1.5, fx: 'perHour', v: 750000 },
-    { id: 'empire',  cat: 'passive', icon: '🌍', name: 'Крысиная империя', base: 90000000, g: 1.5, fx: 'perHour', v: 3000000 }
+    { id: 'cheese',  cat: 'passive', icon: '🧀', name: 'Сыр на завтрак',   base: 42, g: 1.5, fx: 'perHour', v: 5 },
+    { id: 'burrow',  cat: 'passive', icon: '🕳️', name: 'Новая нора',       base: 210, g: 1.5, fx: 'perHour', v: 25 },
+    { id: 'chef',    cat: 'passive', icon: '🧑‍🍳', name: 'Крыса-повар',      base: 840, g: 1.5, fx: 'perHour', v: 100 },
+    { id: 'metro',   cat: 'passive', icon: '🚇', name: 'Метро-тоннели',    base: 4200, g: 1.5, fx: 'perHour', v: 450 },
+    { id: 'factory', cat: 'passive', icon: '🏭', name: 'Сырная фабрика',   base: 21000, g: 1.5, fx: 'perHour', v: 2000 },
+    { id: 'king',    cat: 'passive', icon: '👑', name: 'Король крыс',      base: 105000, g: 1.5, fx: 'perHour', v: 9000 },
+    { id: 'bourse',  cat: 'passive', icon: '📈', name: 'Крысиная биржа',   base: 294000, g: 1.5, fx: 'perHour', v: 22000 },
+    { id: 'bank',    cat: 'passive', icon: '🏦', name: 'Крысиный банк',    base: 840000, g: 1.5, fx: 'perHour', v: 55000 },
+    { id: 'city',    cat: 'passive', icon: '🏙️', name: 'Подземный город',  base: 3360000, g: 1.5, fx: 'perHour', v: 190000 },
+    { id: 'space',   cat: 'passive', icon: '🚀', name: 'Космическая крыса', base: 14700000, g: 1.5, fx: 'perHour', v: 750000 },
+    { id: 'empire',  cat: 'passive', icon: '🌍', name: 'Крысиная империя', base: 63000000, g: 1.5, fx: 'perHour', v: 3000000 }
   ];
   var CAT_HINT = {
     tap: 'Чем сильнее лапы, тем больше RatCoin за каждый тап.',
@@ -688,9 +688,24 @@ nav button.on span{transform:scale(1.15)}
   var shopCat = 'tap';
 
   function lvl(u) { return S.lv[u.id] || 0; }
+  // Начиная с 6-го уровня каждое улучшение даёт больше за уровень, чем базовое v:
+  // 1-5 уровень — обычный прирост v, дальше прирост растёт на шаг (v/2, не меньше 1) с каждым уровнем.
+  function upgradeStep(u) { return Math.max(1, Math.round(u.v * 0.5)); }
+  function upgradeLevelValue(u, level) {
+    return u.v + Math.max(0, level - 5) * upgradeStep(u);
+  }
+  function upgradeTotal(u, L) {
+    if (L <= 0) return 0;
+    var total = u.v * L;
+    if (L > 5) {
+      var n = L - 5;
+      total += upgradeStep(u) * n * (n + 1) / 2;
+    }
+    return total;
+  }
   function sum(fx) {
     var t = 0;
-    UPGRADES.forEach(function (u) { if (u.fx === fx) t += lvl(u) * u.v; });
+    UPGRADES.forEach(function (u) { if (u.fx === fx) t += upgradeTotal(u, lvl(u)); });
     return t;
   }
   function leagueIndex() {
@@ -719,10 +734,11 @@ nav button.on span{transform:scale(1.15)}
   function cost(u) { return Math.round(u.base * Math.pow(u.g, lvl(u))); }
 
   function effectText(u) {
-    if (u.fx === 'tap') return '+' + fmt(u.v) + ' за тап';
-    if (u.fx === 'maxEnergy') return '+' + fmt(u.v) + ' к запасу';
-    if (u.fx === 'regen') return '+' + fmt(u.v) + ' энергии в сек';
-    return '+' + fmt(u.v) + ' / час';
+    var nextV = upgradeLevelValue(u, lvl(u) + 1);
+    if (u.fx === 'tap') return '+' + fmt(nextV) + ' за тап';
+    if (u.fx === 'maxEnergy') return '+' + fmt(nextV) + ' к запасу';
+    if (u.fx === 'regen') return '+' + fmt(nextV) + ' энергии в сек';
+    return '+' + fmt(nextV) + ' / час';
   }
 
   function checkFeedDay() {
