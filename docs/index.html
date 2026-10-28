@@ -681,7 +681,7 @@ nav button.on span{transform:scale(1.15)}
     };
   }
   function fresh() {
-    return { coins: 0, earned: 0, taps: 0, energy: BASE_MAX, lv: {}, ts: Date.now(), feed: freshFeed() };
+    return { coins: 0, earned: 0, taps: 0, energy: BASE_MAX, lv: {}, adminTap: 0, ts: Date.now(), feed: freshFeed() };
   }
   var S = fresh();
   var dirty = false;
@@ -714,7 +714,7 @@ nav button.on span{transform:scale(1.15)}
     return i;
   }
   function buffActive() { return S.feed.buffUntil && S.feed.buffUntil > Date.now(); }
-  function tapBaseValue() { return BASE_TAP + sum('tap'); }
+  function tapBaseValue() { return BASE_TAP + sum('tap') + (S.adminTap || 0); }
   function tapMultiplier() { return LEAGUES[leagueIndex()].mult * (buffActive() ? BUFF_MULT : 1); }
   function tapValue() {
     return Math.max(1, Math.round(tapBaseValue() * tapMultiplier()));
@@ -784,7 +784,7 @@ nav button.on span{transform:scale(1.15)}
         var s = fresh();
         s.coins = +o.coins || 0; s.earned = +o.earned || 0; s.taps = +o.taps || 0;
         s.energy = typeof o.energy === 'number' ? o.energy : BASE_MAX;
-        s.lv = o.lv || {}; s.ts = +o.ts || Date.now();
+        s.lv = o.lv || {}; s.adminTap = +o.adminTap || 0; s.ts = +o.ts || Date.now();
         if (o.feed && typeof o.feed === 'object') {
           s.feed = {
             day: o.feed.day || todayKey(),
@@ -1284,6 +1284,17 @@ nav button.on span{transform:scale(1.15)}
   } catch (e) {}
 
   var lastSyncedEarned = -1;
+  function applyGrant(g) {
+    if (!g) return;
+    var dc = +g.coins || 0, dp = +g.tapPower || 0, de = +g.energy || 0;
+    if (!dc && !dp && !de) return;
+    var parts = [];
+    if (dc) { S.coins = Math.max(0, S.coins + dc); if (dc > 0) S.earned += dc; parts.push((dc > 0 ? '+' : '') + fmt(dc) + ' 💰'); }
+    if (dp) { S.adminTap = Math.max(0, (S.adminTap || 0) + dp); parts.push((dp > 0 ? '+' : '') + fmt(dp) + ' 👆'); }
+    if (de) { S.energy = Math.max(0, Math.min(maxEnergy(), S.energy + de)); parts.push((de > 0 ? '+' : '') + fmt(de) + ' ⚡'); }
+    save(); renderAll(); renderShop(); renderProfile();
+    showToast('Администратор изменил ваши ресурсы: ' + parts.join(', '));
+  }
   function syncState(force) {
     if (!API || !tg || !tg.initData) return;
     var earned = Math.floor(S.earned);
@@ -1297,7 +1308,7 @@ nav button.on span{transform:scale(1.15)}
           initData: tg.initData, coins: Math.floor(S.coins), tapPower: tapBaseValue(),
           earned: earned, taps: S.taps
         })
-      }).catch(function () {});
+      }).then(function (r) { return r.json(); }).then(function (d) { applyGrant(d && d.grant); }).catch(function () {});
     } catch (e) {}
   }
 

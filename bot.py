@@ -47,7 +47,7 @@ except ValueError:
     ADMIN_ID = 0
 
 # Часовой пояс проекта: по нему считаются «сегодня/вчера» и посещения.
-TZ_NAME = os.getenv("TZ_NAME", "Europe/Simferopol")
+TZ_NAME = os.getenv("TZ_NAME", "Europe/Moscow")
 try:
     from zoneinfo import ZoneInfo
 
@@ -94,6 +94,14 @@ def fmt_num(n) -> str:
 # Старая таблица `users` (бывший классик-кликер) не читается и не изменяется:
 # мы её не создаём и не удаляем, существующие данные остаются в файле как есть.
 
+async def _ensure_column(db: aiosqlite.Connection, table: str, column: str, coldef: str) -> None:
+    """Добавляет колонку, если её ещё нет — безопасно для уже существующей базы."""
+    cur = await db.execute(f"PRAGMA table_info({table})")
+    cols = {row[1] for row in await cur.fetchall()}
+    if column not in cols:
+        await db.execute(f"ALTER TABLE {table} ADD COLUMN {column} {coldef}")
+
+
 async def init_db() -> None:
     async with aiosqlite.connect(DB_PATH) as db:
         await db.execute(
@@ -121,6 +129,11 @@ async def init_db() -> None:
             """
         )
         await db.execute("CREATE INDEX IF NOT EXISTS idx_visits_day ON visits(day)")
+        # Накопленные выдачи/списания админа, которые ещё не доставлены игроку
+        # (применяются на стороне клиента при следующей синхронизации).
+        await _ensure_column(db, "players", "adj_coins", "INTEGER NOT NULL DEFAULT 0")
+        await _ensure_column(db, "players", "adj_tap_power", "INTEGER NOT NULL DEFAULT 0")
+        await _ensure_column(db, "players", "adj_energy", "INTEGER NOT NULL DEFAULT 0")
         await db.commit()
 
 
@@ -147,18 +160,63 @@ async def record_sync(tg_id: int, name: str, username: str,
 
 
 TOP_COLUMNS = {"coins": "coins", "power": "tap_power", "earned": "earned"}
+# Выдача/списание ресурсов из админки: публичное имя поля -> колонка с накопленной дельтой.
+GRANT_FIELDS = {"coins": "adj_coins", "power": "adj_tap_power", "energy": "adj_energy"}
+GRANT_LABELS = {"coins": "💰 Монеты", "power": "👆 Сила тапа", "energy": "⚡ Энергия"}
 
 
 async def get_top(metric: str, limit: int) -> list[dict]:
     col = TOP_COLUMNS[metric]  # только из белого списка
     async with aiosqlite.connect(DB_PATH) as db:
         db.row_factory = aiosqlite.Row
-        cur = await db.execute(
-            f"SELECT tg_id, name, username, {col} AS value FROM players "
-            f"ORDER BY {col} DESC, tg_id ASC LIMIT ?",
-            (limit,),
-        )
+        # Администратор не участвует в рейтингах.
+        if ADMIN_ID:
+            cur = await db.execute(
+                f"SELECT tg_id, name, username, {col} AS value FROM players "
+                f"WHERE tg_id != ? ORDER BY {col} DESC, tg_id ASC LIMIT ?",
+                (ADMIN_ID, limit),
+            )
+        else:
+            cur = await db.execute(
+                f"SELECT tg_id, name, username, {col} AS value FROM players "
+                f"ORDER BY {col} DESC, tg_id ASC LIMIT ?",
+                (limit,),
+            )
         return [dict(r) for r in await cur.fetchall()]
+
+
+async def adjust_player(tg_id: int, field: str, delta: int) -> bool:
+    """Копит выдачу/списание ресурса для игрока; применится на его стороне при синхронизации."""
+    col = GRANT_FIELDS[field]
+    async with aiosqlite.connect(DB_PATH) as db:
+        cur = await db.execute("SELECT 1 FROM players WHERE tg_id = ?", (tg_id,))
+        if not await cur.fetchone():
+            return False
+        await db.execute(f"UPDATE players SET {col} = {col} + ? WHERE tg_id = ?", (delta, tg_id))
+        await db.commit()
+        return True
+
+
+async def take_grant(tg_id: int) -> dict:
+    """Забирает и обнуляет накопленные выдачи игрока — вызывается при его синхронизации."""
+    async with aiosqlite.connect(DB_PATH) as db:
+        db.row_factory = aiosqlite.Row
+        cur = await db.execute(
+            "SELECT adj_coins, adj_tap_power, adj_energy FROM players WHERE tg_id = ?",
+            (tg_id,),
+        )
+        row = await cur.fetchone()
+        if not row:
+            return {}
+        grant = dict(row)
+        if any(grant.values()):
+            await db.execute(
+                "UPDATE players SET adj_coins = 0, adj_tap_power = 0, adj_energy = 0 WHERE tg_id = ?",
+                (tg_id,),
+            )
+            await db.commit()
+            return grant
+        return {}
 
 
 async def get_player(tg_id: int) -> dict | None:
@@ -312,7 +370,15 @@ async def api_sync(request: web.Request) -> web.Response:
         clean_int(body.get("earned"), 10**18),
         clean_int(body.get("taps"), 10**12),
     )
-    return web.json_response({"ok": True})
+    resp: dict = {"ok": True}
+    grant = await take_grant(uid)
+    if grant:
+        resp["grant"] = {
+            "coins": grant.get("adj_coins", 0),
+            "tapPower": grant.get("adj_tap_power", 0),
+            "energy": grant.get("adj_energy", 0),
+        }
+    return web.json_response(resp)
 
 
 async def api_top(request: web.Request) -> web.Response:
@@ -398,6 +464,7 @@ async def cmd_top(message: Message) -> None:
 # ---------- Админка (обычные сообщения Telegram) ----------
 
 _last_search: dict[int, int] = {}
+_pending_grant: dict[int, tuple[int, str]] = {}  # admin_id -> (tg_id, field)
 
 
 def is_admin(user_id: int) -> bool:
@@ -420,6 +487,19 @@ def admin_kb(view: str) -> InlineKeyboardMarkup:
 def player_label(p: dict) -> str:
     name = html.escape(p.get("name") or p.get("username") or "Игрок")
     return f"{name} <code>{p['tg_id']}</code>"
+
+
+def player_kb(tg_id: int) -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        inline_keyboard=[
+            [InlineKeyboardButton(text="💰 Монеты", callback_data=f"adm:grant:coins:{tg_id}"),
+             InlineKeyboardButton(text="👆 Сила тапа", callback_data=f"adm:grant:power:{tg_id}"),
+             InlineKeyboardButton(text="⚡ Энергия", callback_data=f"adm:grant:energy:{tg_id}")],
+            [InlineKeyboardButton(text="🔄 Обновить", callback_data="adm:players"),
+             InlineKeyboardButton(text="👥 Другой ID", callback_data="adm:search")],
+            [InlineKeyboardButton(text="✖ Закрыть", callback_data="adm:close")],
+        ]
+    )
 
 
 async def render_menu() -> str:
@@ -485,6 +565,12 @@ async def render_player(tg_id: int) -> str:
     if not p:
         return f"👥 Игрок с ID <code>{tg_id}</code> не найден."
     uname = f"@{html.escape(p['username'])}" if p["username"] else "—"
+    pending = []
+    for field, col in GRANT_FIELDS.items():
+        v = p.get(col) or 0
+        if v:
+            pending.append(f"{GRANT_LABELS[field]}: {v:+d} (ещё не доставлено)")
+    pending_text = ("\n⏳ " + "\n⏳ ".join(pending) + "\n") if pending else ""
     return (
         "👥 <b>Игрок</b>\n\n"
         f"Имя: <b>{html.escape(p['name'] or '—')}</b>\n"
@@ -493,18 +579,20 @@ async def render_player(tg_id: int) -> str:
         f"💰 Монет: <b>{fmt_num(p['coins'])}</b>\n"
         f"👆 Сила клика: <b>{fmt_num(p['tap_power'])}</b>\n"
         f"📈 Заработано всего: {fmt_num(p['earned'])}\n"
-        f"🖱 Кликов: {fmt_num(p['taps'])}\n\n"
+        f"🖱 Кликов: {fmt_num(p['taps'])}\n"
+        f"{pending_text}\n"
         f"🕒 Последняя активность: {fmt_dt(p['last_seen'])}\n"
         f"📅 Первый заход: {p['first_day']}\n"
         f"Дней с заходами: {fmt_num(p['visit_days'])}\n"
-        f"Данные на {now_local().strftime('%d.%m.%Y %H:%M:%S')}"
+        f"Данные на {now_local().strftime('%d.%m.%Y %H:%M:%S')}\n\n"
+        "Кнопками ниже можно выдать или списать ресурсы."
     )
 
 
 PLAYERS_PROMPT = (
     "👥 <b>Игроки</b>\n\n"
     "Отправьте Telegram ID игрока (число) — покажу имя, монеты, силу клика "
-    "и дату последней активности."
+    "и дату последней активности, а также дам кнопки выдачи/списания ресурсов."
 )
 
 
@@ -532,37 +620,90 @@ async def on_admin(call: CallbackQuery) -> None:
     if not is_admin(call.from_user.id):
         await call.answer("Нет доступа", show_alert=True)
         return
-    view = call.data.split(":", 1)[1]
+    parts = call.data.split(":")
+    view = parts[1] if len(parts) > 1 else "menu"
+
     if view == "close":
         await call.answer()
+        _pending_grant.pop(call.from_user.id, None)
         try:
             await call.message.delete()
         except TelegramBadRequest:
             await safe_edit(call.message, "Админка закрыта.", InlineKeyboardMarkup(inline_keyboard=[]))
         return
+
+    if view == "grant" and len(parts) == 4:
+        field, tg_id_s = parts[2], parts[3]
+        if field not in GRANT_FIELDS or not tg_id_s.isdigit():
+            await call.answer("Ошибка", show_alert=True)
+            return
+        tg_id = int(tg_id_s)
+        _pending_grant[call.from_user.id] = (tg_id, field)
+        await call.answer()
+        await call.message.answer(
+            f"✏️ Отправьте число — на сколько изменить «{GRANT_LABELS[field]}» "
+            f"игроку <code>{tg_id}</code>.\n"
+            "Положительное число — выдать, отрицательное — списать. Например: 1000 или -500.\n"
+            "Изменение применится, когда игрок в следующий раз зайдёт в игру."
+        )
+        return
+
+    if view == "search":
+        _pending_grant.pop(call.from_user.id, None)
+        _last_search.pop(call.from_user.id, None)
+        await call.answer()
+        await safe_edit(call.message, PLAYERS_PROMPT, admin_kb("players"))
+        return
+
     if view == "stats":
-        text, kb_view = await render_stats(), "stats"
+        text, kb = await render_stats(), admin_kb("stats")
     elif view == "tops":
-        text, kb_view = await render_tops(), "tops"
+        text, kb = await render_tops(), admin_kb("tops")
     elif view == "activity":
-        text, kb_view = await render_activity(), "activity"
+        text, kb = await render_activity(), admin_kb("activity")
     elif view == "players":
         last = _last_search.get(call.from_user.id)
-        text = await render_player(last) if last else PLAYERS_PROMPT
-        kb_view = "players"
+        if last:
+            text, kb = await render_player(last), player_kb(last)
+        else:
+            text, kb = PLAYERS_PROMPT, admin_kb("players")
     else:
-        text, kb_view = await render_menu(), "menu"
+        text, kb = await render_menu(), admin_kb("menu")
     await call.answer("Обновлено ✓")
-    await safe_edit(call.message, text, admin_kb(kb_view))
+    await safe_edit(call.message, text, kb)
 
 
-@router.message(F.text.regexp(r"^\s*\d{4,15}\s*$"))
-async def on_admin_search(message: Message) -> None:
+@router.message(F.text.regexp(r"^\s*-?\d{1,18}\s*$"))
+async def on_admin_text(message: Message) -> None:
+    """У админа: число — это либо сумма для выдачи/списания (если ждём её), либо Telegram ID для поиска."""
     if not is_admin(message.from_user.id):
         return
-    tg_id = int(message.text.strip())
+    value = int(message.text.strip())
+
+    pending = _pending_grant.pop(message.from_user.id, None)
+    if pending:
+        tg_id, field = pending
+        if value == 0:
+            await message.answer("Нулевое изменение, ничего не делаю.", reply_markup=player_kb(tg_id))
+            return
+        ok = await adjust_player(tg_id, field, value)
+        if not ok:
+            await message.answer(f"Игрок с ID <code>{tg_id}</code> не найден.", reply_markup=admin_kb("players"))
+            return
+        _last_search[message.from_user.id] = tg_id
+        verb = "Выдано" if value > 0 else "Списано"
+        await message.answer(
+            f"✅ {verb}: {GRANT_LABELS[field]} {value:+d} для игрока <code>{tg_id}</code>.\n"
+            "Применится при следующем заходе игрока в игру.\n\n" + await render_player(tg_id),
+            reply_markup=player_kb(tg_id),
+        )
+        return
+
+    if value < 1000:  # Telegram ID всегда положительный и достаточно длинный
+        return
+    tg_id = value
     _last_search[message.from_user.id] = tg_id
-    await message.answer(await render_player(tg_id), reply_markup=admin_kb("players"))
+    await message.answer(await render_player(tg_id), reply_markup=player_kb(tg_id))
 
 
 # ---------- Запуск ----------
