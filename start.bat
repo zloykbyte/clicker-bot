@@ -20,12 +20,23 @@ echo.
 echo Paste the NEW bot token from BotFather and press Enter.
 set /p TOKEN=Token:
 if "%TOKEN%"=="" goto no_token
+echo.
+echo The bot now needs a Postgres database (a free one from https://neon.tech or
+echo https://supabase.com works fine). Paste its connection string
+echo (looks like postgres://user:pass@host:5432/dbname) and press Enter.
+set /p DBURL=Database URL:
+if "%DBURL%"=="" goto no_db
 >.env echo BOT_TOKEN=%TOKEN%
-echo Token saved to .env
+>>.env echo DATABASE_URL=%DBURL%
+echo Token and database saved to .env
 goto have_env
 
 :no_token
 echo Token is empty. Run this file again.
+goto fail
+
+:no_db
+echo Database URL is empty. Run this file again.
 goto fail
 
 :have_env

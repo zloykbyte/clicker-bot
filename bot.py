@@ -10,7 +10,7 @@ import time
 from datetime import datetime, timedelta, timezone
 from urllib.parse import parse_qsl, urlencode, urlparse
 
-import aiosqlite
+import asyncpg
 from aiogram import Bot, Dispatcher, F, Router
 from aiogram.client.default import DefaultBotProperties
 from aiogram.enums import ParseMode
@@ -23,23 +23,32 @@ from aiogram.types import (
     InlineKeyboardMarkup,
     MenuButtonWebApp,
     Message,
+    Update,
     WebAppInfo,
 )
-from aiohttp import web
 from dotenv import load_dotenv
 
 load_dotenv()
 
 BOT_TOKEN = os.getenv("BOT_TOKEN")
-DB_PATH = os.getenv("DB_PATH", "clicker.db")
-# Адрес Mini App (страница из папки docs, опубликованная через GitHub Pages).
+# Postgres: обязателен при хостинге на Vercel (там нет локальных файлов между запросами).
+# Vercel Postgres сам кладёт строку подключения в POSTGRES_URL — DATABASE_URL для локального/своего Postgres.
+DATABASE_URL = (
+    os.getenv("DATABASE_URL")
+    or os.getenv("POSTGRES_URL")
+    or os.getenv("POSTGRES_PRISMA_URL")
+    or ""
+)
+# Адрес Mini App (страница из папки docs, опубликованная через GitHub Pages или Vercel).
 # Должен быть https. Можно переопределить в .env: WEBAPP_URL=...
 WEBAPP_URL = os.getenv("WEBAPP_URL", "https://zloykbyte.github.io/clicker-bot/")
-# Публичный https-адрес API этого бота (туннель или хостинг), его получает Mini App
-# для рейтингов и учёта посещений. Без него игра работает, но рейтинг пуст.
+# Публичный https-адрес API этого бота (туннель, свой хостинг или домен на Vercel), его получает
+# Mini App для рейтингов и учёта посещений. Без него игра работает, но рейтинг пуст.
 API_PUBLIC_URL = (os.getenv("API_PUBLIC_URL") or "").rstrip("/")
 API_HOST = os.getenv("API_HOST", "127.0.0.1")
 API_PORT = int(os.getenv("PORT") or os.getenv("API_PORT") or 8080)
+# Секрет для проверки вебхука Telegram (режим Vercel). Необязателен, но желателен.
+WEBHOOK_SECRET = os.getenv("WEBHOOK_SECRET") or ""
 
 try:
     ADMIN_ID = int((os.getenv("ADMIN_ID") or "0").strip() or 0)
@@ -60,7 +69,22 @@ ACTIVE_DAYS_NEEDED = 3   # столько разных дней
 ACTIVE_WINDOW = 7        # за последние столько дней
 
 router = Router()
+dp = Dispatcher()
+dp.include_router(router)
 log = logging.getLogger("ratcombat")
+
+_bot_singleton: Bot | None = None
+
+
+def get_bot() -> Bot:
+    """Общий экземпляр Bot — используется и локальным polling, и вебхуком на Vercel
+    (там функция может переиспользоваться между вызовами, пока инстанс «тёплый»)."""
+    global _bot_singleton
+    if _bot_singleton is None:
+        if not BOT_TOKEN:
+            raise RuntimeError("Не задан BOT_TOKEN.")
+        _bot_singleton = Bot(BOT_TOKEN, default=DefaultBotProperties(parse_mode=ParseMode.HTML))
+    return _bot_singleton
 
 
 # ---------- Время ----------
@@ -90,51 +114,73 @@ def fmt_num(n) -> str:
         return "0"
 
 
-# ---------- База данных ----------
-# Старая таблица `users` (бывший классик-кликер) не читается и не изменяется:
-# мы её не создаём и не удаляем, существующие данные остаются в файле как есть.
+# ---------- База данных (Postgres через asyncpg) ----------
+# Старая таблица `users` (бывший классик-кликер) из старой SQLite-версии бота здесь
+# никогда не создавалась и не читается — при переезде на Postgres она просто не существует.
+#
+# В serverless (Vercel) файлы между вызовами не сохраняются, поэтому вместо локального
+# SQLite-файла используется внешний Postgres (Vercel Postgres/Neon/Supabase и т.п. — подходит
+# любой, достаточно строки подключения в DATABASE_URL/POSTGRES_URL).
 
-async def _ensure_column(db: aiosqlite.Connection, table: str, column: str, coldef: str) -> None:
-    """Добавляет колонку, если её ещё нет — безопасно для уже существующей базы."""
-    cur = await db.execute(f"PRAGMA table_info({table})")
-    cols = {row[1] for row in await cur.fetchall()}
-    if column not in cols:
-        await db.execute(f"ALTER TABLE {table} ADD COLUMN {column} {coldef}")
+_pool: asyncpg.Pool | None = None
+_schema_ready = False
+
+
+async def get_pool() -> asyncpg.Pool:
+    global _pool
+    if _pool is None:
+        if not DATABASE_URL:
+            raise RuntimeError(
+                "Не задан DATABASE_URL (или POSTGRES_URL) — нужна Postgres-база. "
+                "См. .env.example."
+            )
+        # statement_cache_size=0 — обязательно, если подключение идёт через PgBouncer
+        # в режиме transaction pooling (так работает большинство serverless-Postgres,
+        # включая Vercel Postgres/Neon): иначе asyncpg ловит ошибки с prepared statements.
+        _pool = await asyncpg.create_pool(DATABASE_URL, min_size=0, max_size=5, statement_cache_size=0)
+    return _pool
 
 
 async def init_db() -> None:
-    async with aiosqlite.connect(DB_PATH) as db:
-        await db.execute(
+    """Создаёт схему, если её ещё нет. Безопасно вызывать многократно (в т.ч. на каждый cold start)."""
+    global _schema_ready
+    if _schema_ready:
+        return
+    pool = await get_pool()
+    async with pool.acquire() as con:
+        await con.execute(
             """
             CREATE TABLE IF NOT EXISTS players (
-                tg_id     INTEGER PRIMARY KEY,
-                name      TEXT    NOT NULL DEFAULT '',
-                username  TEXT    NOT NULL DEFAULT '',
-                coins     INTEGER NOT NULL DEFAULT 0,
-                tap_power INTEGER NOT NULL DEFAULT 1,
-                earned    INTEGER NOT NULL DEFAULT 0,
-                taps      INTEGER NOT NULL DEFAULT 0,
-                first_day TEXT    NOT NULL,
-                last_seen TEXT    NOT NULL
+                tg_id     BIGINT PRIMARY KEY,
+                name      TEXT   NOT NULL DEFAULT '',
+                username  TEXT   NOT NULL DEFAULT '',
+                coins     BIGINT NOT NULL DEFAULT 0,
+                tap_power BIGINT NOT NULL DEFAULT 1,
+                earned    BIGINT NOT NULL DEFAULT 0,
+                taps      BIGINT NOT NULL DEFAULT 0,
+                first_day TEXT   NOT NULL,
+                last_seen TEXT   NOT NULL,
+                adj_coins     BIGINT NOT NULL DEFAULT 0,
+                adj_tap_power BIGINT NOT NULL DEFAULT 0,
+                adj_energy    BIGINT NOT NULL DEFAULT 0
             )
             """
         )
-        await db.execute(
+        # На случай апгрейда с более ранней схемы без adj_*-колонок.
+        await con.execute("ALTER TABLE players ADD COLUMN IF NOT EXISTS adj_coins BIGINT NOT NULL DEFAULT 0")
+        await con.execute("ALTER TABLE players ADD COLUMN IF NOT EXISTS adj_tap_power BIGINT NOT NULL DEFAULT 0")
+        await con.execute("ALTER TABLE players ADD COLUMN IF NOT EXISTS adj_energy BIGINT NOT NULL DEFAULT 0")
+        await con.execute(
             """
             CREATE TABLE IF NOT EXISTS visits (
-                tg_id INTEGER NOT NULL,
-                day   TEXT    NOT NULL,
+                tg_id BIGINT NOT NULL,
+                day   TEXT   NOT NULL,
                 PRIMARY KEY (tg_id, day)
             )
             """
         )
-        await db.execute("CREATE INDEX IF NOT EXISTS idx_visits_day ON visits(day)")
-        # Накопленные выдачи/списания админа, которые ещё не доставлены игроку
-        # (применяются на стороне клиента при следующей синхронизации).
-        await _ensure_column(db, "players", "adj_coins", "INTEGER NOT NULL DEFAULT 0")
-        await _ensure_column(db, "players", "adj_tap_power", "INTEGER NOT NULL DEFAULT 0")
-        await _ensure_column(db, "players", "adj_energy", "INTEGER NOT NULL DEFAULT 0")
-        await db.commit()
+        await con.execute("CREATE INDEX IF NOT EXISTS idx_visits_day ON visits(day)")
+    _schema_ready = True
 
 
 async def record_sync(tg_id: int, name: str, username: str,
@@ -142,21 +188,25 @@ async def record_sync(tg_id: int, name: str, username: str,
     """Сохраняет состояние игрока и засчитывает посещение (один день — одно)."""
     day = today_local().isoformat()
     ts = datetime.now(timezone.utc).isoformat(timespec="seconds")
-    async with aiosqlite.connect(DB_PATH) as db:
-        await db.execute(
-            """
-            INSERT INTO players (tg_id, name, username, coins, tap_power, earned, taps, first_day, last_seen)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-            ON CONFLICT(tg_id) DO UPDATE SET
-                name = excluded.name, username = excluded.username,
-                coins = excluded.coins, tap_power = excluded.tap_power,
-                earned = excluded.earned, taps = excluded.taps,
-                last_seen = excluded.last_seen
-            """,
-            (tg_id, name, username, coins, tap_power, earned, taps, day, ts),
-        )
-        await db.execute("INSERT OR IGNORE INTO visits (tg_id, day) VALUES (?, ?)", (tg_id, day))
-        await db.commit()
+    pool = await get_pool()
+    async with pool.acquire() as con:
+        async with con.transaction():
+            await con.execute(
+                """
+                INSERT INTO players (tg_id, name, username, coins, tap_power, earned, taps, first_day, last_seen)
+                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+                ON CONFLICT (tg_id) DO UPDATE SET
+                    name = EXCLUDED.name, username = EXCLUDED.username,
+                    coins = EXCLUDED.coins, tap_power = EXCLUDED.tap_power,
+                    earned = EXCLUDED.earned, taps = EXCLUDED.taps,
+                    last_seen = EXCLUDED.last_seen
+                """,
+                tg_id, name, username, coins, tap_power, earned, taps, day, ts,
+            )
+            await con.execute(
+                "INSERT INTO visits (tg_id, day) VALUES ($1, $2) ON CONFLICT DO NOTHING",
+                tg_id, day,
+            )
 
 
 TOP_COLUMNS = {"coins": "coins", "power": "tap_power", "earned": "earned"}
@@ -167,96 +217,89 @@ GRANT_LABELS = {"coins": "💰 Монеты", "power": "👆 Сила тапа",
 
 async def get_top(metric: str, limit: int) -> list[dict]:
     col = TOP_COLUMNS[metric]  # только из белого списка
-    async with aiosqlite.connect(DB_PATH) as db:
-        db.row_factory = aiosqlite.Row
+    pool = await get_pool()
+    async with pool.acquire() as con:
         # Администратор не участвует в рейтингах.
         if ADMIN_ID:
-            cur = await db.execute(
+            rows = await con.fetch(
                 f"SELECT tg_id, name, username, {col} AS value FROM players "
-                f"WHERE tg_id != ? ORDER BY {col} DESC, tg_id ASC LIMIT ?",
-                (ADMIN_ID, limit),
+                f"WHERE tg_id != $1 ORDER BY {col} DESC, tg_id ASC LIMIT $2",
+                ADMIN_ID, limit,
             )
         else:
-            cur = await db.execute(
+            rows = await con.fetch(
                 f"SELECT tg_id, name, username, {col} AS value FROM players "
-                f"ORDER BY {col} DESC, tg_id ASC LIMIT ?",
-                (limit,),
+                f"ORDER BY {col} DESC, tg_id ASC LIMIT $1",
+                limit,
             )
-        return [dict(r) for r in await cur.fetchall()]
+        return [dict(r) for r in rows]
 
 
 async def adjust_player(tg_id: int, field: str, delta: int) -> bool:
     """Копит выдачу/списание ресурса для игрока; применится на его стороне при синхронизации."""
     col = GRANT_FIELDS[field]
-    async with aiosqlite.connect(DB_PATH) as db:
-        cur = await db.execute("SELECT 1 FROM players WHERE tg_id = ?", (tg_id,))
-        if not await cur.fetchone():
+    pool = await get_pool()
+    async with pool.acquire() as con:
+        exists = await con.fetchval("SELECT 1 FROM players WHERE tg_id = $1", tg_id)
+        if not exists:
             return False
-        await db.execute(f"UPDATE players SET {col} = {col} + ? WHERE tg_id = ?", (delta, tg_id))
-        await db.commit()
+        await con.execute(f"UPDATE players SET {col} = {col} + $1 WHERE tg_id = $2", delta, tg_id)
         return True
 
 
 async def take_grant(tg_id: int) -> dict:
     """Забирает и обнуляет накопленные выдачи игрока — вызывается при его синхронизации."""
-    async with aiosqlite.connect(DB_PATH) as db:
-        db.row_factory = aiosqlite.Row
-        cur = await db.execute(
-            "SELECT adj_coins, adj_tap_power, adj_energy FROM players WHERE tg_id = ?",
-            (tg_id,),
+    pool = await get_pool()
+    async with pool.acquire() as con:
+        row = await con.fetchrow(
+            "SELECT adj_coins, adj_tap_power, adj_energy FROM players WHERE tg_id = $1",
+            tg_id,
         )
-        row = await cur.fetchone()
         if not row:
             return {}
         grant = dict(row)
         if any(grant.values()):
-            await db.execute(
-                "UPDATE players SET adj_coins = 0, adj_tap_power = 0, adj_energy = 0 WHERE tg_id = ?",
-                (tg_id,),
+            await con.execute(
+                "UPDATE players SET adj_coins = 0, adj_tap_power = 0, adj_energy = 0 WHERE tg_id = $1",
+                tg_id,
             )
-            await db.commit()
             return grant
         return {}
 
 
 async def get_player(tg_id: int) -> dict | None:
-    async with aiosqlite.connect(DB_PATH) as db:
-        db.row_factory = aiosqlite.Row
-        cur = await db.execute("SELECT * FROM players WHERE tg_id = ?", (tg_id,))
-        row = await cur.fetchone()
+    pool = await get_pool()
+    async with pool.acquire() as con:
+        row = await con.fetchrow("SELECT * FROM players WHERE tg_id = $1", tg_id)
         if not row:
             return None
         p = dict(row)
-        cur = await db.execute("SELECT COUNT(*) FROM visits WHERE tg_id = ?", (tg_id,))
-        p["visit_days"] = (await cur.fetchone())[0]
+        p["visit_days"] = await con.fetchval("SELECT COUNT(*) FROM visits WHERE tg_id = $1", tg_id)
         return p
 
 
 async def get_stats() -> dict:
     today = today_local()
     d = lambda n: (today - timedelta(days=n)).isoformat()  # noqa: E731
-    async with aiosqlite.connect(DB_PATH) as db:
-        async def one(sql, args=()):
-            cur = await db.execute(sql, args)
-            return (await cur.fetchone())[0]
-
-        total = await one("SELECT COUNT(*) FROM players")
+    pool = await get_pool()
+    async with pool.acquire() as con:
+        total = await con.fetchval("SELECT COUNT(*) FROM players")
         new = {
-            "today": await one("SELECT COUNT(*) FROM players WHERE first_day = ?", (d(0),)),
-            "yesterday": await one("SELECT COUNT(*) FROM players WHERE first_day = ?", (d(1),)),
-            "week": await one("SELECT COUNT(*) FROM players WHERE first_day >= ?", (d(6),)),
-            "month": await one("SELECT COUNT(*) FROM players WHERE first_day >= ?", (d(29),)),
+            "today": await con.fetchval("SELECT COUNT(*) FROM players WHERE first_day = $1", d(0)),
+            "yesterday": await con.fetchval("SELECT COUNT(*) FROM players WHERE first_day = $1", d(1)),
+            "week": await con.fetchval("SELECT COUNT(*) FROM players WHERE first_day >= $1", d(6)),
+            "month": await con.fetchval("SELECT COUNT(*) FROM players WHERE first_day >= $1", d(29)),
         }
         seen = {
-            "today": await one("SELECT COUNT(DISTINCT tg_id) FROM visits WHERE day = ?", (d(0),)),
-            "yesterday": await one("SELECT COUNT(DISTINCT tg_id) FROM visits WHERE day = ?", (d(1),)),
-            "week": await one("SELECT COUNT(DISTINCT tg_id) FROM visits WHERE day >= ?", (d(6),)),
-            "month": await one("SELECT COUNT(DISTINCT tg_id) FROM visits WHERE day >= ?", (d(29),)),
+            "today": await con.fetchval("SELECT COUNT(DISTINCT tg_id) FROM visits WHERE day = $1", d(0)),
+            "yesterday": await con.fetchval("SELECT COUNT(DISTINCT tg_id) FROM visits WHERE day = $1", d(1)),
+            "week": await con.fetchval("SELECT COUNT(DISTINCT tg_id) FROM visits WHERE day >= $1", d(6)),
+            "month": await con.fetchval("SELECT COUNT(DISTINCT tg_id) FROM visits WHERE day >= $1", d(29)),
         }
-        active = await one(
-            "SELECT COUNT(*) FROM (SELECT tg_id FROM visits WHERE day >= ? "
-            "GROUP BY tg_id HAVING COUNT(DISTINCT day) >= ?)",
-            (d(ACTIVE_WINDOW - 1), ACTIVE_DAYS_NEEDED),
+        active = await con.fetchval(
+            "SELECT COUNT(*) FROM (SELECT tg_id FROM visits WHERE day >= $1 "
+            "GROUP BY tg_id HAVING COUNT(DISTINCT day) >= $2) sub",
+            d(ACTIVE_WINDOW - 1), ACTIVE_DAYS_NEEDED,
         )
     return {"total": total, "new": new, "seen": seen,
             "active": active, "inactive": max(0, total - active)}
@@ -265,19 +308,20 @@ async def get_stats() -> dict:
 async def get_activity() -> dict:
     today = today_local()
     days = [(today - timedelta(days=n)) for n in range(ACTIVE_WINDOW - 1, -1, -1)]
-    async with aiosqlite.connect(DB_PATH) as db:
+    pool = await get_pool()
+    async with pool.acquire() as con:
         per_day = []
         for day in days:
-            cur = await db.execute(
-                "SELECT COUNT(DISTINCT tg_id) FROM visits WHERE day = ?", (day.isoformat(),)
+            cnt = await con.fetchval(
+                "SELECT COUNT(DISTINCT tg_id) FROM visits WHERE day = $1", day.isoformat()
             )
-            per_day.append((day, (await cur.fetchone())[0]))
-        cur = await db.execute(
-            "SELECT c, COUNT(*) FROM (SELECT COUNT(DISTINCT day) AS c FROM visits "
-            "WHERE day >= ? GROUP BY tg_id) GROUP BY c",
-            (days[0].isoformat(),),
+            per_day.append((day, cnt))
+        rows = await con.fetch(
+            "SELECT c, COUNT(*) AS n FROM (SELECT COUNT(DISTINCT day) AS c FROM visits "
+            "WHERE day >= $1 GROUP BY tg_id) sub GROUP BY c",
+            days[0].isoformat(),
         )
-        dist = {c: n for c, n in await cur.fetchall()}
+        dist = {r["c"]: r["n"] for r in rows}
     return {"per_day": per_day, "dist": dist}
 
 
@@ -314,14 +358,16 @@ def clean_int(value, hi: int) -> int:
 
 
 # ---------- HTTP API для Mini App ----------
+# Основная логика здесь не зависит от веб-фреймворка: её вызывают и aiohttp-обёртки ниже
+# (для локального запуска/своего хостинга), и serverless-функции в api/*.py (для Vercel).
 
 _last_sync: dict[int, float] = {}
 
 
-def cors_headers(request: web.Request) -> dict:
+def cors_headers() -> dict:
     origin = urlparse(WEBAPP_URL)
     allowed = f"{origin.scheme}://{origin.netloc}"
-    h = {
+    return {
         "Access-Control-Allow-Origin": allowed,
         "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
         "Access-Control-Allow-Headers": "Content-Type",
@@ -329,37 +375,16 @@ def cors_headers(request: web.Request) -> dict:
         "Cache-Control": "no-store",
         "Vary": "Origin",
     }
-    return h
 
 
-@web.middleware
-async def cors_middleware(request: web.Request, handler):
-    if request.method == "OPTIONS":
-        return web.Response(status=204, headers=cors_headers(request))
-    try:
-        resp = await handler(request)
-    except web.HTTPException as e:
-        resp = e
-    resp.headers.update(cors_headers(request))
-    return resp
-
-
-async def api_health(request: web.Request) -> web.Response:
-    return web.json_response({"ok": True})
-
-
-async def api_sync(request: web.Request) -> web.Response:
-    try:
-        body = await request.json()
-    except Exception:
-        return web.json_response({"ok": False, "error": "bad json"}, status=400)
+async def sync_logic(body: dict) -> tuple[dict, int]:
     user = validate_init_data(str(body.get("initData", "")))
     if not user:
-        return web.json_response({"ok": False, "error": "bad auth"}, status=401)
+        return {"ok": False, "error": "bad auth"}, 401
     uid = user["id"]
     now = time.monotonic()
     if now - _last_sync.get(uid, 0) < 3:
-        return web.json_response({"ok": True, "throttled": True})
+        return {"ok": True, "throttled": True}, 200
     _last_sync[uid] = now
     name = " ".join(x for x in (user.get("first_name"), user.get("last_name")) if x)[:64]
     username = str(user.get("username") or "")[:64]
@@ -378,16 +403,15 @@ async def api_sync(request: web.Request) -> web.Response:
             "tapPower": grant.get("adj_tap_power", 0),
             "energy": grant.get("adj_energy", 0),
         }
-    return web.json_response(resp)
+    return resp, 200
 
 
-async def api_top(request: web.Request) -> web.Response:
-    metric = request.query.get("metric", "coins")
+async def top_logic(metric: str, limit_raw: str) -> dict:
     if metric not in TOP_COLUMNS:
         metric = "coins"
     try:
-        limit = int(request.query.get("limit", "10"))
-    except ValueError:
+        limit = int(limit_raw)
+    except (TypeError, ValueError):
         limit = 10
     limit = limit if limit in (3, 10, 100) else 10
     rows = await get_top(metric, limit)  # всегда свежие данные из базы
@@ -395,11 +419,40 @@ async def api_top(request: web.Request) -> web.Response:
         {"rank": i + 1, "name": r["name"] or r["username"] or "Игрок", "value": r["value"]}
         for i, r in enumerate(rows)
     ]
-    return web.json_response({"metric": metric, "limit": limit, "items": items,
-                              "updated": datetime.now(timezone.utc).isoformat(timespec="seconds")})
+    return {"metric": metric, "limit": limit, "items": items,
+            "updated": datetime.now(timezone.utc).isoformat(timespec="seconds")}
 
 
-def build_api() -> web.Application:
+def build_api():
+    """aiohttp-приложение для локального запуска/своего хостинга (не нужно на Vercel)."""
+    from aiohttp import web
+
+    @web.middleware
+    async def cors_middleware(request: web.Request, handler):
+        if request.method == "OPTIONS":
+            return web.Response(status=204, headers=cors_headers())
+        try:
+            resp = await handler(request)
+        except web.HTTPException as e:
+            resp = e
+        resp.headers.update(cors_headers())
+        return resp
+
+    async def api_health(request: web.Request) -> web.Response:
+        return web.json_response({"ok": True})
+
+    async def api_sync(request: web.Request) -> web.Response:
+        try:
+            body = await request.json()
+        except Exception:
+            return web.json_response({"ok": False, "error": "bad json"}, status=400)
+        data, status = await sync_logic(body)
+        return web.json_response(data, status=status)
+
+    async def api_top(request: web.Request) -> web.Response:
+        data = await top_logic(request.query.get("metric", "coins"), request.query.get("limit", "10"))
+        return web.json_response(data)
+
     app = web.Application(middlewares=[cors_middleware])
     app.router.add_get("/api/health", api_health)
     app.router.add_post("/api/sync", api_sync)
@@ -708,23 +761,10 @@ async def on_admin_text(message: Message) -> None:
 
 # ---------- Запуск ----------
 
-async def main() -> None:
-    if not BOT_TOKEN:
-        raise SystemExit("Не задан BOT_TOKEN. Создайте файл .env (см. .env.example).")
-    logging.basicConfig(level=logging.INFO)
-    await init_db()
-    bot = Bot(BOT_TOKEN, default=DefaultBotProperties(parse_mode=ParseMode.HTML))
-
-    runner = web.AppRunner(build_api())
-    await runner.setup()
-    await web.TCPSite(runner, API_HOST, API_PORT).start()
-    log.info("API слушает %s:%s, публичный адрес: %s", API_HOST, API_PORT,
-             API_PUBLIC_URL or "не задан (рейтинг в Mini App будет пуст)")
-    if not ADMIN_ID:
-        log.warning("ADMIN_ID не задан — команда /admin отключена")
-
+async def setup_bot_menu(bot: Bot) -> None:
+    """Кнопка «Играть» рядом с полем ввода и список команд. Можно вызывать отдельно
+    (например, из scripts/vercel_setup.py после деплоя на Vercel, где polling не запускается)."""
     try:
-        # Кнопка «Играть» рядом с полем ввода и список команд
         await bot.set_chat_menu_button(
             menu_button=MenuButtonWebApp(text="🐀 Играть", web_app=WebAppInfo(url=webapp_url()))
         )
@@ -736,8 +776,28 @@ async def main() -> None:
         )
     except Exception:
         logging.exception("Не удалось настроить меню бота")
-    dp = Dispatcher()
-    dp.include_router(router)
+
+
+async def main() -> None:
+    """Локальный запуск: long-polling + свой HTTP API (aiohttp). Не используется на Vercel —
+    там бот работает через вебхук, см. api/webhook.py и README (раздел «Деплой на Vercel»)."""
+    from aiohttp import web
+
+    if not BOT_TOKEN:
+        raise SystemExit("Не задан BOT_TOKEN. Создайте файл .env (см. .env.example).")
+    logging.basicConfig(level=logging.INFO)
+    await init_db()
+    bot = get_bot()
+
+    runner = web.AppRunner(build_api())
+    await runner.setup()
+    await web.TCPSite(runner, API_HOST, API_PORT).start()
+    log.info("API слушает %s:%s, публичный адрес: %s", API_HOST, API_PORT,
+             API_PUBLIC_URL or "не задан (рейтинг в Mini App будет пуст)")
+    if not ADMIN_ID:
+        log.warning("ADMIN_ID не задан — команда /admin отключена")
+
+    await setup_bot_menu(bot)
     await bot.delete_webhook(drop_pending_updates=True)
     try:
         await dp.start_polling(bot)
